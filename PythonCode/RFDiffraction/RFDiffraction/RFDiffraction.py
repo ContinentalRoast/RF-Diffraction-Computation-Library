@@ -176,41 +176,7 @@ def ITUSingleRounded(height,distance1,distance2,wavel,radius):
         Tmn = -6-20*math.log10(mn) + 7.2*m**(1/2)-(2-17*n)*m+3.6*m**(3/2)-0.8*m**2
         return (Tmn + Jv)
 
-def ITUTwoEdgeSimilarLosses(Xcoords,Ycoords,wavel):
-    #Transmitter (x,y)
-    #Receiver (x,y)
-    #Obstacle1 (x,y)
-    #Obstacle2 (x,y)
-    Tx = Xcoords[0]
-    Ty = Ycoords[0]
-    Rx = Xcoords[3]
-    Ry = Ycoords[3]
-    Ob1x = Xcoords[1]
-    Ob1y = Ycoords[1]
-    Ob2x = Xcoords[2]
-    Ob2y = Ycoords[2]
-
-    m1 = (Ry-Ob1y)/(Rx-Ob1x)
-    b1 = Ob1y - m1*Ob1x
-    
-    m2 = (Ob2y-Ty)/(Ob2x-Tx)
-    b2 = Ob2y - m2*Ob2x
-
-    h1 = Ob1y-(m2*Ob1x + b2)
-    h2 = Ob2y-(m1*Ob2x + b1)
-
-    a = Ob1x-Tx
-    b = Ob2x-Ob1x
-    c = Rx-Ob2x
-
-    L1 = FresnelKirchoff(h1,a,b,wavel)
-    L2 = FresnelKirchoff(h2,b,c,wavel)
-    Lc = 0
-    if (L1 > 15)&(L2>15):
-        Lc = 10*math.log10(((a+b)*(b+c))/(b*(a+b+c)))
-    return (L1 + L2 + Lc)
-
-def ITUTwoEdgePredominantEdge(Xcoords,Ycoords,wavel): #how do you determine that an edge is predominant?
+def ITUTwoEdge(Xcoords,Ycoords,wavel): #how do you determine that an edge is predominant?
 
     Tx = Xcoords[0]
     Ty = Ycoords[0]
@@ -231,19 +197,110 @@ def ITUTwoEdgePredominantEdge(Xcoords,Ycoords,wavel): #how do you determine that
     h1 = Ob1y-(m1*Ob1x + b1)
     h2 = Ob2y-(m2*Ob2x + b2)
 
+    r1 = ((wavel*(Ob1x-Tx)*((Rx-Ob1x-Tx)))/(Rx-Tx))**(1/2)
+    r2 = ((wavel*(Ob2x-Tx)*((Rx-Ob2x-Tx)))/(Rx-Tx))**(1/2)
+    ratio1 = h1/r1
+    ratio2 = h2/r2
+
     a = Ob1x-Tx
     b = Ob2x-Ob1x
     c = Rx-Ob2x
 
-    L1 = FresnelKirchoff(h1,a,(b+c),wavel)
+    if (ratio1-ratio2)**2 > 2: #This condition must be refined
 
-    L2 = FresnelKirchoff(h2,b,c,wavel)
+        L1 = FresnelKirchoff(h1,a,b,wavel)
+        L2 = FresnelKirchoff(h2,b,c,wavel)
+        Lc = 0
+        if (L1 > 15)&(L2>15):
+            Lc = 10*math.log10(((a+b)*(b+c))/(b*(a+b+c)))
 
-    Lc = 0
-    if (L1 > 15)&(L2>15):
-        Lc = 10*math.log10(((a+b)*(b+c))/(b*(a+b+c)))
-    return (L1 + L2 + Lc)
+        return (L1 + L2 + Lc)
+    
+    elif ratio1 > ratio2:
 
+        L1 = FresnelKirchoff(h1,a,(b+c),wavel)
+        L2 = FresnelKirchoff(h2,b,c,wavel)
+        p = (2/wavel*((a+b+c)/((b+c)*a)))**(1/2)*h1
+        q = (2/wavel*((a+b+c)/((b+a)*c)))**(1/2)*h2
+        alpha = math.arctan((b*(a+b+c)/(a*c))**(1/2))
+        Tc = (12-20*math.log10(2/(1-(alpha/math.pi))))*(q/p)**(2*p)
+
+        return (L1+L2-Tc)
+
+
+    elif ratio2 > ratio1:
+
+        L1 = FresnelKirchoff(h1,(a+b),c,wavel)
+        L2 = FresnelKirchoff(h2,a,b,wavel)
+        p = (2/wavel*((a+b+c)/((b+c)*a)))**(1/2)*h1
+        q = (2/wavel*((a+b+c)/((b+a)*c)))**(1/2)*h2
+        alpha = math.arctan((b*(a+b+c)/(a*c))**(1/2))
+        Tc = (12-20*math.log10(2/(1-(alpha/math.pi))))*(q/p)**(2*p)
+
+        return (L1+L2-Tc)
+
+def ITUTwoRounded(Xcoords,Ycoords,radii,wavel): 
+
+    Tx = Xcoords[0]
+    Ty = Ycoords[0]
+    Rx = Xcoords[3]
+    Ry = Ycoords[3]
+
+    Ob1x = Xcoords[1]
+    Ob1y = Ycoords[1]
+    Ob2x = Xcoords[2]
+    Ob2y = Ycoords[2]
+
+    m1 = (Ry-Ty)/(Rx-Tx)
+    b1 = Ty - m1*Rx
+    
+    m2 = (Ry-Ob1y)/(Rx-Ob1x)
+    b2 = Ob1y - m2*Ob1x
+
+    h1 = Ob1y-(m1*Ob1x + b1)
+    h2 = Ob2y-(m2*Ob2x + b2)
+
+    r1 = ((wavel*(Ob1x-Tx)*((Rx-Ob1x-Tx)))/(Rx-Tx))**(1/2)
+    r2 = ((wavel*(Ob2x-Tx)*((Rx-Ob2x-Tx)))/(Rx-Tx))**(1/2)
+    ratio1 = h1/r1
+    ratio2 = h2/r2
+
+    a = Ob1x-Tx
+    b = Ob2x-Ob1x
+    c = Rx-Ob2x
+
+    if (ratio1-ratio2)**2 > 2: #This condition must be refined
+
+        L1 = ITUSingleRounded(h1,a,b,wavel,radii[0])
+        L2 = ITUSingleRounded(h2,a,b,wavel,radii[1])
+        Lc = 0
+        if (L1 > 15)&(L2>15):
+            Lc = 10*math.log10(((a+b)*(b+c))/(b*(a+b+c)))
+
+        return (L1 + L2 + Lc)
+    
+    elif ratio1 > ratio2:
+
+        L1 = ITUSingleRounded(h1,a,(b+c),wavel,radii[0])
+        L2 = ITUSingleRounded(h2,b,c,wavel,radii[1])
+        p = (2/wavel*((a+b+c)/((b+c)*a)))**(1/2)*h1
+        q = (2/wavel*((a+b+c)/((b+a)*c)))**(1/2)*h2
+        alpha = math.arctan((b*(a+b+c)/(a*c))**(1/2))
+        Tc = (12-20*math.log10(2/(1-(alpha/math.pi))))*(q/p)**(2*p)
+
+        return (L1+L2-Tc)
+
+
+    elif ratio2 > ratio1:
+
+        L1 = ITUSingleRounded(h1,(a+b),c,wavel,radii[0])
+        L2 = ITUSingleRounded(h2,a,b,wavel,radii[1])
+        p = (2/wavel*((a+b+c)/((b+c)*a)))**(1/2)*h1
+        q = (2/wavel*((a+b+c)/((b+a)*c)))**(1/2)*h2
+        alpha = math.arctan((b*(a+b+c)/(a*c))**(1/2))
+        Tc = (12-20*math.log10(2/(1-(alpha/math.pi))))*(q/p)**(2*p)
+
+        return (L1+L2-Tc)
 
 def main():
     #the transmitter is at point zero on the distnace axis
