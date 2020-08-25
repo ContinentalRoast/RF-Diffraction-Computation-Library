@@ -51,8 +51,8 @@ def FresnelZoneClearance(distarr,heightarr,rheight,theight,wavel):
 
     Tdist = distarr[0] 
     Theight = theight + heightarr[0]
-    Rdist = distarr[len(distarr)-1]
-    Rheight = rheight + heightarr[len(heightarr)-1]
+    Rdist = distarr[len(distarr)]
+    Rheight = rheight + heightarr[len(heightarr)]
 
     m = (Rheight-Theight)/(Rdist-Tdist)
     b = Theight
@@ -189,7 +189,7 @@ def ITUTwoEdge(Xcoords,Ycoords,wavel): #how do you determine that an edge is pre
     Ob2y = Ycoords[2]
 
     m1 = (Ry-Ty)/(Rx-Tx)
-    b1 = Ty - m1*Rx
+    b1 = Ty - m1*Tx
     
     m2 = (Ry-Ob1y)/(Rx-Ob1x)
     b2 = Ob1y - m2*Ob1x
@@ -252,7 +252,7 @@ def ITUTwoRounded(Xcoords,Ycoords,radii,wavel):
     Ob2y = Ycoords[2]
 
     m1 = (Ry-Ty)/(Rx-Tx)
-    b1 = Ty - m1*Rx
+    b1 = Ty - m1*Tx
     
     m2 = (Ry-Ob1y)/(Rx-Ob1x)
     b2 = Ob1y - m2*Ob1x
@@ -302,6 +302,60 @@ def ITUTwoRounded(Xcoords,Ycoords,radii,wavel):
 
         return (L1+L2-Tc)
 
+def Bullington(Xcoords,Ycoords,wavel):
+    Tx = Xcoords[0]
+    Ty = Ycoords[0]
+    Rx = Xcoords[len(Xcoords)-1]
+    Ry = Ycoords[len(Ycoords)-1]
+
+    mTR = (Ry-Ty)/(Rx-Tx)
+    bTR = Ry - mTR*Rx
+
+    ldy = 0
+
+    for xcoord, ycoord in zip(Xcoords[1:(len(Xcoords)-1)],Ycoords[1:(len(Ycoords)-1)]):
+        LoSy = mTR*xcoord + bTR
+        if LoSy < ycoord:
+            ldy = ycoord
+
+
+    m1 = 0
+    b1 = 0
+    m2 = 0
+    b2 = 0
+
+    for xcoord, ycoord in zip(Xcoords[1:(len(Xcoords)-1)],Ycoords[1:(len(Ycoords)-1)]):
+        mtemp1 = (ycoord-Ty)/(xcoord-Tx)
+        mtemp2 = (Ry-ycoord)/(Rx-xcoord)
+        print(mtemp1)
+        print(mtemp2)
+
+        if ldy > 0:
+            if mtemp1 > m1:
+                m1 = mtemp1
+                b1 = Ty - m1*Tx
+
+            if mtemp2 < m2:
+                m2 = mtemp2
+                b2 = Ry - m2*Rx
+        else:
+            if mtemp1 < m1:
+                m1 = mtemp1
+                b1 = Ty - m1*Tx
+
+            if mtemp2 > m2:
+                m2 = mtemp2
+                b2 = Ry - m2*Rx
+
+    Xpoint = (b2-b1)/(m1-m2)
+    Ypoint = m1*Xpoint+b1
+    print("m1: ",m1)
+    print("m2: ",m2)
+    plt.plot(Xcoords,Ycoords,'-')
+    plt.plot([Tx,Xpoint,Rx],[Ty,Ypoint,Ry],'-')
+    plt.show()
+
+
 def main():
     #the transmitter is at point zero on the distnace axis
     intlength = 60 #meter
@@ -320,6 +374,8 @@ def main():
 
     #Jv = FresnelKirchoff(20,10000,5000,wavel)
     #A = ITUSingleRounded(20,10000,5000,wavel,15)
+
+    Bullington([0,10,20,40,60,90],[10,20,15,10,30,18],wavel)
 
 
 if __name__ == '__main__':
