@@ -51,8 +51,8 @@ def FresnelZoneClearance(distarr,heightarr,rheight,theight,wavel):
 
     Tdist = distarr[0] 
     Theight = theight + heightarr[0]
-    Rdist = distarr[len(distarr)]
-    Rheight = rheight + heightarr[len(heightarr)]
+    Rdist = distarr[len(distarr)-1]
+    Rheight = rheight + heightarr[len(heightarr)-1]
 
     m = (Rheight-Theight)/(Rdist-Tdist)
     b = Theight
@@ -136,8 +136,19 @@ def FresnelZoneClearance(distarr,heightarr,rheight,theight,wavel):
 
 #def ITULoS():
 
+def ObstacleValues(Xcoords,Ycoords):
+    distance1 = ((Xcoords[1]-Xcoords[0])**2+(Ycoords[1]-Ycoords[0])**2)**(1/2)
+    distance2 = ((Xcoords[2]-Xcoords[1])**2+(Ycoords[2]-Ycoords[1])**2)**(1/2)
 
-def FresnelKirchoff(height,distance1,distance2,wavel):
+    mLoS = (Ycoords[2]-Ycoords[0])/(Xcoords[2]-Xcoords[0])
+    bLoS = Ycoords[2] - Xcoords[2]*mLoS
+    height = Ycoords[1]-(mLoS*Xcoords[1]+bLoS)
+    return distance1,distance2,height
+
+def FresnelKirchoff(Xcoords,Ycoords,wavel):
+
+    distance1,distance2,height = ObstacleValues(Xcoords,Ycoords)
+    print('Height: ',height,'d1:',distance1,'d2',distance2)
     v = height*math.sqrt(2/wavel*(1/(distance1)+1/(distance2)))
 
     #METHOD 1
@@ -164,8 +175,9 @@ def FresnelKirchoff(height,distance1,distance2,wavel):
     #print(Jv)
     return Jv
 
-def ITUSingleRounded(height,distance1,distance2,wavel,radius):
-    Jv = FresnelKirchoff(height,distance1,distance2,wavel)
+def ITUSingleRounded(Xcoords,Ycoords,wavel,radius):
+    distance1,distance2,height = ObstacleValues(Xcoords,Ycoords)
+    Jv = FresnelKirchoff(Xcoords,Ycoords,wavel)
     m = radius*((distance1+distance2)/(distance1*distance2))/(math.pi*radius/wavel)**(1/3)
     n = height*(math.pi*radius/wavel)**(2/3)/radius
     mn = m*n
@@ -206,10 +218,10 @@ def ITUTwoEdge(Xcoords,Ycoords,wavel): #how do you determine that an edge is pre
     b = Ob2x-Ob1x
     c = Rx-Ob2x
 
+    
     if (ratio1-ratio2)**2 > 2: #This condition must be refined
-
-        L1 = FresnelKirchoff(h1,a,b,wavel)
-        L2 = FresnelKirchoff(h2,b,c,wavel)
+        L1 = FresnelKirchoff([Tx,Ob1x,Ob2x],[Ty,Ob1y,Ob2y],wavel)
+        L2 = FresnelKirchoff([Ob1x,Ob2x,Ry],[Ob1y,Ob2y,Ry],wavel)
         Lc = 0
         if (L1 > 15)&(L2>15):
             Lc = 10*math.log10(((a+b)*(b+c))/(b*(a+b+c)))
@@ -218,8 +230,8 @@ def ITUTwoEdge(Xcoords,Ycoords,wavel): #how do you determine that an edge is pre
     
     elif ratio1 > ratio2:
 
-        L1 = FresnelKirchoff(h1,a,(b+c),wavel)
-        L2 = FresnelKirchoff(h2,b,c,wavel)
+        L1 = FresnelKirchoff([Tx,Ob1x,Rx],[Ty,Ob1y,Ry],wavel)
+        L2 = FresnelKirchoff([Ob1x,Ob2x,Rx],[Ob1y,Ob2y,Ry],wavel)
         p = (2/wavel*((a+b+c)/((b+c)*a)))**(1/2)*h1
         q = (2/wavel*((a+b+c)/((b+a)*c)))**(1/2)*h2
         alpha = math.arctan((b*(a+b+c)/(a*c))**(1/2))
@@ -230,8 +242,8 @@ def ITUTwoEdge(Xcoords,Ycoords,wavel): #how do you determine that an edge is pre
 
     elif ratio2 > ratio1:
 
-        L1 = FresnelKirchoff(h1,(a+b),c,wavel)
-        L2 = FresnelKirchoff(h2,a,b,wavel)
+        L1 = FresnelKirchoff([Tx,Ob2x,Rx],[Ty,Ob2y,Ry],wavel)
+        L2 = FresnelKirchoff([Tx,Ob1x,Ob2x],[Ty,Ob1y,Ob2y],wavel)
         p = (2/wavel*((a+b+c)/((b+c)*a)))**(1/2)*h1
         q = (2/wavel*((a+b+c)/((b+a)*c)))**(1/2)*h2
         alpha = math.arctan((b*(a+b+c)/(a*c))**(1/2))
@@ -271,8 +283,8 @@ def ITUTwoRounded(Xcoords,Ycoords,radii,wavel):
 
     if (ratio1-ratio2)**2 > 2: #This condition must be refined
 
-        L1 = ITUSingleRounded(h1,a,b,wavel,radii[0])
-        L2 = ITUSingleRounded(h2,a,b,wavel,radii[1])
+        L1 = ITUSingleRounded([Tx,Ob1x,Ob2x],[Ty,Ob1y,Ob2y],wavel,radii[0])
+        L2 = ITUSingleRounded([Ob1x,Ob2x,Ry],[Ob1y,Ob2y,Ry],wavel,radii[1])
         Lc = 0
         if (L1 > 15)&(L2>15):
             Lc = 10*math.log10(((a+b)*(b+c))/(b*(a+b+c)))
@@ -281,8 +293,8 @@ def ITUTwoRounded(Xcoords,Ycoords,radii,wavel):
     
     elif ratio1 > ratio2:
 
-        L1 = ITUSingleRounded(h1,a,(b+c),wavel,radii[0])
-        L2 = ITUSingleRounded(h2,b,c,wavel,radii[1])
+        L1 = ITUSingleRounded([Tx,Ob1x,Rx],[Ty,Ob1y,Ry],wavel,radii[0])
+        L2 = ITUSingleRounded([Ob1x,Ob2x,Rx],[Ob1y,Ob2y,Ry],wavel,radii[1])
         p = (2/wavel*((a+b+c)/((b+c)*a)))**(1/2)*h1
         q = (2/wavel*((a+b+c)/((b+a)*c)))**(1/2)*h2
         alpha = math.arctan((b*(a+b+c)/(a*c))**(1/2))
@@ -293,8 +305,8 @@ def ITUTwoRounded(Xcoords,Ycoords,radii,wavel):
 
     elif ratio2 > ratio1:
 
-        L1 = ITUSingleRounded(h1,(a+b),c,wavel,radii[0])
-        L2 = ITUSingleRounded(h2,a,b,wavel,radii[1])
+        L1 = ITUSingleRounded([Tx,Ob2x,Rx],[Ty,Ob2y,Ry],wavel,radii[0])
+        L2 = ITUSingleRounded([Tx,Ob1x,Ob2x],[Ty,Ob1y,Ob2y],wavel,radii[1])
         p = (2/wavel*((a+b+c)/((b+c)*a)))**(1/2)*h1
         q = (2/wavel*((a+b+c)/((b+a)*c)))**(1/2)*h2
         alpha = math.arctan((b*(a+b+c)/(a*c))**(1/2))
@@ -324,7 +336,7 @@ def Bullington(Xcoords,Ycoords,wavel):
     m2 = 0
     b2 = 0
 
-    for xcoord, ycoord in zip(Xcoords[1:(len(Xcoords)-1)],Ycoords[1:(len(Ycoords)-1)]):
+    for xcoord, ycoord in zip(Xcoords[1:(len(Xcoords)-1)],Ycoords[1:(len(Ycoords)-1)]):     #!?
         mtemp1 = (ycoord-Ty)/(xcoord-Tx)
         mtemp2 = (Ry-ycoord)/(Rx-xcoord)
         print(mtemp1)
@@ -349,33 +361,38 @@ def Bullington(Xcoords,Ycoords,wavel):
 
     Xpoint = (b2-b1)/(m1-m2)
     Ypoint = m1*Xpoint+b1
-    print("m1: ",m1)
-    print("m2: ",m2)
+    #print('Ypoint:',Ypoint)
+    #print("m1: ",m1)
+    #print("m2: ",m2)
+    #print("Lenth: ",len(Xcoords)) 
+    #print(Xcoords[:(len(Xcoords))])#!?
     plt.plot(Xcoords,Ycoords,'-')
     plt.plot([Tx,Xpoint,Rx],[Ty,Ypoint,Ry],'-')
     plt.show()
-
+    #print('Xcoords',[Tx,Xpoint,Rx],'Ycoords:',[Ty,Ypoint,Ry])
+    return FresnelKirchoff([Tx,Xpoint,Rx],[Ty,Ypoint,Ry],wavel)
 
 def main():
     #the transmitter is at point zero on the distnace axis
     intlength = 60 #meter
     rheight = 50 #meter
     theight = 50 #meter
-    frequency = 1000000000 #Hz
+    frequency = 600000000 #Hz
 
     wavel = WaveLength(frequency)
 
     #print(wavel)
-    distarr, heightarr = TerrainDivide("Book5.csv",intlength)
+    #distarr, heightarr = TerrainDivide("C:/Users/marko/Desktop/FYP/Book5.csv",intlength)
 
-    xintersect, yintersect = FresnelZoneClearance(distarr,heightarr,rheight,theight,wavel)
+    #xintersect, yintersect = FresnelZoneClearance(distarr,heightarr,rheight,theight,wavel)
 
     #ObstacleSmoothness(xintersect, yintersect, wavel)
 
     #Jv = FresnelKirchoff(20,10000,5000,wavel)
     #A = ITUSingleRounded(20,10000,5000,wavel,15)
 
-    Bullington([0,10,20,40,60,90],[10,20,15,10,30,18],wavel)
+    L = Bullington([0,7000,12000,22000,26000],[0,30,30,20,0],wavel)
+    print('Loss: ',L)
 
 
 if __name__ == '__main__':
