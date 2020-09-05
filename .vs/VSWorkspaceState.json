@@ -1,7 +1,10 @@
 {
   "ExpandedNodes": [
-    ""
+    "",
+    "\\PythonCode",
+    "\\PythonCode\\RFDiffraction",
+    "\\PythonCode\\RFDiffraction\\RFDiffraction"
   ],
-  "SelectedNode": "\\.gitignore",
+  "SelectedNode": "\\PythonCode\\RFDiffraction\\RFDiffraction\\RFDiffraction.py",
   "PreviewInSolutionExplorer": false
 }

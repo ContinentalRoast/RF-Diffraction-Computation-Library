@@ -18,7 +18,7 @@ def WaveLength(frequency):
     wavel = c/frequency #wavelength or lambda
     return wavel
 
-def TerrainDivide(fname, intlength):
+def TerrainDivide(fname, intlength,ptpindex):
     Dist = []
     Height = []
     #filename = filedialog.askopenfilename(initialdir =  "/", title = "Select A File", filetype =(("csv files","*.csv"),("all files","*.*")))
@@ -124,7 +124,7 @@ def FresnelZoneClearance(distarr,heightarr,rheight,theight,wavel):
     plt.show()
 
     return xintersect, yintersect
-    
+
 
 #def ObstacleSmoothness(xintersect, yintersect, wavel):
     
@@ -322,14 +322,12 @@ def Bullington(Xcoords,Ycoords,wavel):
 
     mTR = (Ry-Ty)/(Rx-Tx)
     bTR = Ry - mTR*Rx
-
     ldy = 0
 
     for xcoord, ycoord in zip(Xcoords[1:(len(Xcoords)-1)],Ycoords[1:(len(Ycoords)-1)]):
         LoSy = mTR*xcoord + bTR
         if LoSy < ycoord:
             ldy = ycoord
-
 
     m1 = 0
     b1 = 0
@@ -366,11 +364,21 @@ def Bullington(Xcoords,Ycoords,wavel):
     #print("m2: ",m2)
     #print("Lenth: ",len(Xcoords)) 
     #print(Xcoords[:(len(Xcoords))])#!?
-    plt.plot(Xcoords,Ycoords,'-')
-    plt.plot([Tx,Xpoint,Rx],[Ty,Ypoint,Ry],'-')
-    plt.show()
-    #print('Xcoords',[Tx,Xpoint,Rx],'Ycoords:',[Ty,Ypoint,Ry])
+    #plt.plot(Xcoords,Ycoords,'-')
+    #plt.plot([Tx,Xpoint,Rx],[Ty,Ypoint,Ry],'-')
+    #plt.show()
     return FresnelKirchoff([Tx,Xpoint,Rx],[Ty,Ypoint,Ry],wavel)
+
+def EpsteinPeterson(Xcoords,Ycoords,wavel):
+    NumEdges = len(Xcoords) - 2
+    L = 0
+
+    for i in range(NumEdges):
+        L = L + FresnelKirchoff([Xcoords[i],Xcoords[i+1],Xcoords[i+2]],[Ycoords[i],Ycoords[i+1],Ycoords[i+2]],wavel)
+
+    return L
+
+
 
 def main():
     #the transmitter is at point zero on the distnace axis
@@ -380,10 +388,10 @@ def main():
     frequency = 600000000 #Hz
 
     wavel = WaveLength(frequency)
-
+    print(type(wavel))
     #print(wavel)
-    #distarr, heightarr = TerrainDivide("C:/Users/marko/Desktop/FYP/Book5.csv",intlength)
-
+    distarr, heightarr = TerrainDivide("C:/Users/marko/Desktop/FYP/Book5.csv",intlength,1)
+    print(type(distarr[5]))
     #xintersect, yintersect = FresnelZoneClearance(distarr,heightarr,rheight,theight,wavel)
 
     #ObstacleSmoothness(xintersect, yintersect, wavel)
@@ -391,7 +399,8 @@ def main():
     #Jv = FresnelKirchoff(20,10000,5000,wavel)
     #A = ITUSingleRounded(20,10000,5000,wavel,15)
 
-    L = Bullington([0,7000,12000,22000,26000],[0,30,30,20,0],wavel)
+    #L = Bullington([0,7000,12000,22000,26000],[0,30,30,20,0],wavel)
+    L = EpsteinPeterson([0,7000,12000,22000,26000],[0,30,50,20,0],wavel)
     print('Loss: ',L)
 
 
