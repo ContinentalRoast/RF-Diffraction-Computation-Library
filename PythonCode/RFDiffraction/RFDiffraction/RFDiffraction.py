@@ -148,7 +148,7 @@ def ObstacleValues(Xcoords,Ycoords):
 def FresnelKirchoff(Xcoords,Ycoords,wavel):
 
     distance1,distance2,height = ObstacleValues(Xcoords,Ycoords)
-    print('Height: ',height,'d1:',distance1,'d2',distance2)
+    #print('Height: ',height,'d1:',distance1,'d2',distance2)
     v = height*math.sqrt(2/wavel*(1/(distance1)+1/(distance2)))
 
     #METHOD 1
@@ -378,6 +378,33 @@ def EpsteinPeterson(Xcoords,Ycoords,wavel):
 
     return L
 
+def Deygout(Xcoords,Ycoords,wavel):
+
+    NumEdges = len(Xcoords) - 2
+    FresnelParams = []
+
+    for i in range(NumEdges):
+        distance1, distance2, height = ObstacleValues([Xcoords[0],Xcoords[i+1],Xcoords[-1]],[Ycoords[0],Ycoords[i+1],Ycoords[-1]])
+        v = height*math.sqrt(2/wavel*(1/(distance1)+1/(distance2)))
+        FresnelParams.append(v)
+
+    L = DeygoutLoss(Xcoords,Ycoords,wavel,FresnelParams)
+    print(L)
+
+def DeygoutLoss(Xcoords,Ycoords,wavel,FresnelParams): #Rekursie is stadig, improve
+    if len(Xcoords) < 3:
+        return 0
+    else:
+        MaxV = np.where(FresnelParams == np.amax(FresnelParams))
+
+        L = FresnelKirchoff([Xcoords[0],Xcoords[MaxV[0][0].astype(int)+1],Xcoords[-1]],[Ycoords[0],Ycoords[MaxV[0][0].astype(int)+1],Ycoords[-1]],wavel)
+        L = L + DeygoutLoss(Xcoords[0:(MaxV[0][0].astype(int)+2)],Ycoords[0:(MaxV[0][0].astype(int)+2)],wavel,FresnelParams[0:MaxV[0][0].astype(int)])
+        L = L + DeygoutLoss(Xcoords[(MaxV[0][0].astype(int)+1):len(Xcoords)],Ycoords[(MaxV[0][0].astype(int)+1):len(Xcoords)],wavel,
+                            FresnelParams[MaxV[0][0].astype(int)+1:len(FresnelParams)])
+
+        return L
+
+
 
 
 def main():
@@ -400,7 +427,8 @@ def main():
     #A = ITUSingleRounded(20,10000,5000,wavel,15)
 
     #L = Bullington([0,7000,12000,22000,26000],[0,30,30,20,0],wavel)
-    L = EpsteinPeterson([0,7000,12000,22000,26000],[0,30,50,20,0],wavel)
+    #L = EpsteinPeterson([0,7000,12000,22000,26000],[0,30,50,20,0],wavel)
+    L = Deygout([0,7000,12000,22000,26000],[0,30,50,20,0],wavel)
     print('Loss: ',L)
 
 
