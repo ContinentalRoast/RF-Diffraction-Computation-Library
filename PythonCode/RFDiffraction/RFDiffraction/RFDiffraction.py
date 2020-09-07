@@ -13,6 +13,9 @@ import sympy as sp
 from scipy.integrate import quad
 from scipy import special
 
+from mpmath import nsum
+
+
 def WaveLength(frequency):
     c = 299792458 #speed of light m/s
     wavel = c/frequency #wavelength or lambda
@@ -124,7 +127,6 @@ def FresnelZoneClearance(distarr,heightarr,rheight,theight,wavel):
     plt.show()
 
     return xintersect, yintersect
-
 
 #def ObstacleSmoothness(xintersect, yintersect, wavel):
     
@@ -380,6 +382,19 @@ def EpsteinPeterson(Xcoords,Ycoords,wavel):
 
 def Deygout(Xcoords,Ycoords,wavel):
 
+    def DeygoutLoss(Xcoords,Ycoords,wavel,FresnelParams): #Rekursie is stadig, improve
+        if len(Xcoords) < 3:
+            return 0
+        else:
+            MaxV = np.where(FresnelParams == np.amax(FresnelParams))
+
+            L = FresnelKirchoff([Xcoords[0],Xcoords[MaxV[0][0].astype(int)+1],Xcoords[-1]],[Ycoords[0],Ycoords[MaxV[0][0].astype(int)+1],Ycoords[-1]],wavel)
+            L = L + DeygoutLoss(Xcoords[0:(MaxV[0][0].astype(int)+2)],Ycoords[0:(MaxV[0][0].astype(int)+2)],wavel,FresnelParams[0:MaxV[0][0].astype(int)])
+            L = L + DeygoutLoss(Xcoords[(MaxV[0][0].astype(int)+1):len(Xcoords)],Ycoords[(MaxV[0][0].astype(int)+1):len(Xcoords)],wavel,
+                                FresnelParams[MaxV[0][0].astype(int)+1:len(FresnelParams)])
+                
+            return L
+
     NumEdges = len(Xcoords) - 2
     FresnelParams = []
 
@@ -391,18 +406,46 @@ def Deygout(Xcoords,Ycoords,wavel):
     L = DeygoutLoss(Xcoords,Ycoords,wavel,FresnelParams)
     print(L)
 
-def DeygoutLoss(Xcoords,Ycoords,wavel,FresnelParams): #Rekursie is stadig, improve
-    if len(Xcoords) < 3:
-        return 0
-    else:
-        MaxV = np.where(FresnelParams == np.amax(FresnelParams))
+def Vogler(Xcoords,Ycoords,wavel):
+    r = []
+    #heights = []
+    #Theight = Ycoords[0]
+    #Rheight = Ycoords[-1]
+    length = len(Xcoords)
+    N = length-2
+    theta = []  #There are some possible knife edge angle events not covered by Vogler
+    alpha = []
+    beta = []
+    k = 2*np.pi/wavel
 
-        L = FresnelKirchoff([Xcoords[0],Xcoords[MaxV[0][0].astype(int)+1],Xcoords[-1]],[Ycoords[0],Ycoords[MaxV[0][0].astype(int)+1],Ycoords[-1]],wavel)
-        L = L + DeygoutLoss(Xcoords[0:(MaxV[0][0].astype(int)+2)],Ycoords[0:(MaxV[0][0].astype(int)+2)],wavel,FresnelParams[0:MaxV[0][0].astype(int)])
-        L = L + DeygoutLoss(Xcoords[(MaxV[0][0].astype(int)+1):len(Xcoords)],Ycoords[(MaxV[0][0].astype(int)+1):len(Xcoords)],wavel,
-                            FresnelParams[MaxV[0][0].astype(int)+1:len(FresnelParams)])
+    for i in range(length-1):
+        r.append(Xcoords[i+1]-Xcoords[i])
+        
+    for i in range(length-2):
+        ang1 = np.arctan((Ycoords[i+1]-Ycoords[i])/(Xcoords[i+1]-Xcoords[i]))*180/np.pi
+        ang2 = np.arctan((Ycoords[i+2]-Ycoords[i+1])/(Xcoords[i+2]-Xcoords[i+1]))*180/np.pi
+        theta.append(ang1-ang2)
 
-        return L
+    for i in range(length - 3):
+        a = ((r[i]*r[i+2])/(r[i]+r[i+1])*(r[i+1]+r[i+2]))**(1/2)
+        alpha.append(a)
+
+    for i in range(length - 2):
+        b = theta[i]*((i*k*r[i]*r[i+1])/(2*(r[i]+r[i+1])))**(1/2)
+        beta.append(b)
+
+
+    def integrand(x):
+        output = np.exp(-(x)**2.0)
+        return output
+
+    g = quad(integrand1,20,np.inf)
+    print(g)
+
+    jj = nsum(lambda x: exp(-x**2), [-inf, inf])
+
+
+
 
 
 
@@ -415,10 +458,8 @@ def main():
     frequency = 600000000 #Hz
 
     wavel = WaveLength(frequency)
-    print(type(wavel))
     #print(wavel)
     distarr, heightarr = TerrainDivide("C:/Users/marko/Desktop/FYP/Book5.csv",intlength,1)
-    print(type(distarr[5]))
     #xintersect, yintersect = FresnelZoneClearance(distarr,heightarr,rheight,theight,wavel)
 
     #ObstacleSmoothness(xintersect, yintersect, wavel)
@@ -428,8 +469,9 @@ def main():
 
     #L = Bullington([0,7000,12000,22000,26000],[0,30,30,20,0],wavel)
     #L = EpsteinPeterson([0,7000,12000,22000,26000],[0,30,50,20,0],wavel)
-    L = Deygout([0,7000,12000,22000,26000],[0,30,50,20,0],wavel)
-    print('Loss: ',L)
+    #L = Deygout([0,7000,12000,22000,26000],[0,30,50,20,0],wavel)
+    #print('Loss: ',L)
+
 
 
 if __name__ == '__main__':
