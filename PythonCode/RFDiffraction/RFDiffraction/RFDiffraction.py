@@ -14,6 +14,8 @@ from scipy.integrate import quad
 from scipy import special
 
 from mpmath import nsum
+from scipy.ndimage.filters import gaussian_filter1d
+from scipy.signal import find_peaks
 
 
 def WaveLength(frequency):
@@ -36,8 +38,10 @@ def TerrainDivide(fname, intlength,ptpindex):
         
     x = np.array(dist[1:])
     Dist= x.astype(np.float)
+    Dist = Dist*1000
     y = np.array(heig[1:])
     Height = y.astype(np.float)
+
 
     if Dist[len(Dist)-1] > intlength:
         index = np.where(Dist >= intlength)
@@ -50,7 +54,6 @@ def TerrainDivide(fname, intlength,ptpindex):
     return Dist[:pindex], Height[:pindex]
 
 def FresnelZoneClearance(distarr,heightarr,rheight,theight,wavel):
-
 
     Tdist = distarr[0] 
     Theight = theight + heightarr[0]
@@ -104,7 +107,7 @@ def FresnelZoneClearance(distarr,heightarr,rheight,theight,wavel):
         RadiusYValues1.append(y1)
         RadiusYValues2.append(y2)
 
-    plt.plot(RadiusXValues2,RadiusYValues2,'k-')
+    #plt.plot(RadiusXValues2,RadiusYValues2,'k-')
     #plt.plot(RadiusXValues1,RadiusYValues1,'-')
 
     xintersect = []
@@ -117,22 +120,72 @@ def FresnelZoneClearance(distarr,heightarr,rheight,theight,wavel):
         #print(RadiusXValues2[pIndex])
         #print('---------------')
 
-        if ycoord > RadiusYValues2[pIndex]:
+        if ycoord >= RadiusYValues2[pIndex]:
             xintersect.append(xcoord)
             yintersect.append(ycoord)
 
-    plt.plot(distarr,heightarr,'-')
-    plt.plot(xintersect,yintersect,'m.')
-    plt.plot((Tdist,Rdist),(Theight,Rheight),'r-')
-    plt.show()
 
-    return xintersect, yintersect
+    
+
+
+    #plt.plot(distarr,heightarr,'-')
+    #plt.plot(distarr,ysmoothed,'-')
+    #plt.plot(xintersect,yintersect,'m-')
+    #plt.plot((Tdist,Rdist),(Theight,Rheight),'r-')
+    #plt.show()
+
+    return xintersect, yintersect, Tdist, Theight, Rdist, Rheight
 
 #def ObstacleSmoothness(xintersect, yintersect, wavel):
-    
-#def KnifeEdges():
 
-#def Cylinders():
+
+def KnifeEdges(xintersect, yintersect, wavel, distarr, heightarr, Rheight, Theight):
+
+    ysmoothed = gaussian_filter1d(heightarr,sigma=4)
+
+    ysmoothed[0] = Theight
+    ysmoothed[-1] = Rheight
+
+    b = (np.diff(np.sign(np.diff(ysmoothed))) > 0).nonzero()[0] + 1         #local minimums
+
+
+    peakIndeces = []
+    for i in range(len(b)-1):
+        hindex = np.where(heightarr[b[i]:b[i+1]] == heightarr[b[i]:b[i+1]].max())[0][0]
+        peakIndeces.append(hindex+b[i])
+
+    knifeX = []
+    knifeY = []
+
+    for i in range(len(peakIndeces)):
+        X = distarr[peakIndeces[i]]
+        if X in xintersect:
+            knifeY.append(heightarr[peakIndeces[i]])
+            knifeX.append(X)
+
+        
+
+
+    plt.plot(distarr[b], ysmoothed[b], "o", label="min", color='r')
+
+    plt.plot(knifeX,knifeY,'x')
+    plt.plot(distarr,heightarr,'-')
+    plt.plot(distarr,ysmoothed,'-')
+    #plt.plot(xintersect,yintersect,'m-')
+    
+    plt.show()
+
+    return knifeX, knifeY
+
+
+def Cylinders(xintersect, yintersect, wavel, distarr, heightarr, Rheight, Theight):
+
+    ysmoothed = gaussian_filter1d(heightarr,sigma=4)
+
+    ysmoothed[0] = Theight
+    ysmoothed[-1] = Rheight
+
+    b = (np.diff(np.sign(np.diff(ysmoothed))) > 0).nonzero()[0] + 1
 
 #def ITUNLoS(): #10 MHz and above
 
@@ -171,7 +224,6 @@ def FresnelKirchoff(Xcoords,Ycoords,wavel):
     Vals = special.fresnel(v)
     Cv = Vals[1]
     Sv = Vals[0]
-
 
     Jv = -20*math.log10(math.sqrt((1-Cv-Sv)**2+(Cv-Sv)**2)/2)  #J(v) is the diffraction loss in dB
     #print(Jv)
@@ -420,7 +472,7 @@ def Vogler(Xcoords,Ycoords,wavel):
 
     for i in range(length-1):
         r.append(Xcoords[i+1]-Xcoords[i])
-        
+
     for i in range(length-2):
         ang1 = np.arctan((Ycoords[i+1]-Ycoords[i])/(Xcoords[i+1]-Xcoords[i]))*180/np.pi
         ang2 = np.arctan((Ycoords[i+2]-Ycoords[i+1])/(Xcoords[i+2]-Xcoords[i+1]))*180/np.pi
@@ -452,7 +504,7 @@ def Vogler(Xcoords,Ycoords,wavel):
 
 def main():
     #the transmitter is at point zero on the distnace axis
-    intlength = 60 #meter
+    intlength = 17400 #meter
     rheight = 50 #meter
     theight = 50 #meter
     frequency = 600000000 #Hz
@@ -460,7 +512,9 @@ def main():
     wavel = WaveLength(frequency)
     #print(wavel)
     distarr, heightarr = TerrainDivide("C:/Users/marko/Desktop/FYP/Book5.csv",intlength,1)
-    #xintersect, yintersect = FresnelZoneClearance(distarr,heightarr,rheight,theight,wavel)
+    xintersect, yintersect,Tdist,Theight,Rdist,Rheight = FresnelZoneClearance(distarr,heightarr,rheight,theight,wavel)
+
+    knifeX, knifeY = KnifeEdges(xintersect, yintersect, wavel, distarr, heightarr, Rheight, Theight)
 
     #ObstacleSmoothness(xintersect, yintersect, wavel)
 
