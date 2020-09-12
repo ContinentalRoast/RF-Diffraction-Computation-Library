@@ -128,7 +128,7 @@ def FresnelZoneClearance(distarr,heightarr,rheight,theight,wavel):
     
 
 
-    #plt.plot(distarr,heightarr,'-')
+    plt.plot(distarr,heightarr,'-')
     #plt.plot(distarr,ysmoothed,'-')
     #plt.plot(xintersect,yintersect,'m-')
     #plt.plot((Tdist,Rdist),(Theight,Rheight),'r-')
@@ -139,53 +139,116 @@ def FresnelZoneClearance(distarr,heightarr,rheight,theight,wavel):
 #def ObstacleSmoothness(xintersect, yintersect, wavel):
 
 
-def KnifeEdges(xintersect, yintersect, wavel, distarr, heightarr, Rheight, Theight):
+def KnifeEdges(xintersect, yintersect, wavel, distarr, heightarr, Rheight, Theight, cylinders):
 
     ysmoothed = gaussian_filter1d(heightarr,sigma=4)
-
     ysmoothed[0] = Theight
     ysmoothed[-1] = Rheight
 
-    b = (np.diff(np.sign(np.diff(ysmoothed))) > 0).nonzero()[0] + 1         #local minimums
-
+    localmin = (np.diff(np.sign(np.diff(ysmoothed))) > 0).nonzero()[0] + 1         #local minimums
+    localmax = (np.diff(np.sign(np.diff(ysmoothed))) < 0).nonzero()[0] + 1         # local max
 
     peakIndeces = []
-    for i in range(len(b)-1):
-        hindex = np.where(heightarr[b[i]:b[i+1]] == heightarr[b[i]:b[i+1]].max())[0][0]
-        peakIndeces.append(hindex+b[i])
-
     knifeX = []
     knifeY = []
+    sknifeX = []
+
+    #Get knife edges--------------------------------------------------------------------------------------------------------
+    for i in range(len(localmin)-1):
+        hindex = np.where(heightarr[localmin[i]:localmin[i+1]] == heightarr[localmin[i]:localmin[i+1]].max())[0][0]
+        peakIndeces.append(hindex+localmin[i])
+
+
 
     for i in range(len(peakIndeces)):
         X = distarr[peakIndeces[i]]
+        
         if X in xintersect:
             knifeY.append(heightarr[peakIndeces[i]])
             knifeX.append(X)
+            sknifeX.append(distarr[localmax[i]])
+    #-----------------------------------------------------------------------------------------------------------------------
 
-        
+    #Get cylinder radiusses-------------------------------------------------------------------------------------------------
+    radiusses = []
+    #county = 0
+    #countr = 0
+    p1 = 25
+    p3 = 75
+    for i in range(len(localmin)-1):
+        g = np.where(np.logical_and(xintersect>distarr[localmin[i]], xintersect<distarr[localmin[i+1]]))
+        radiussum = 0
+        if len(g[0]):
+            fi = len(g[0])-1
+            middley = (max(yintersect[g[0][0]:g[0][fi]])-min(yintersect[g[0][0]:g[0][fi]]))/2
+            q1 = np.percentile(xintersect[g[0][0]:g[0][fi]],p1)
+            q3 = np.percentile(xintersect[g[0][0]:g[0][fi]],p3)
+            middlex = (q3-q1)/2
+            if((middlex == 0)|(middley==0)):
+                radiusses.append(0)
+            else:
+                radiusses.append(middlex)
+            #fi = len(g[0])-1
+            #averageX = sum(xintersect[g[0][0]:g[0][fi]])/(fi+1)
+            #for xc, yc in zip(xintersect[g[0][0]:g[0][fi]],yintersect[g[0][0]:g[0][fi]]):
+            #    xi = abs(averageX-xc)
+            #    yi = knifeY[county]-yc
+            #    if((yi!=0)&(xi!=0)):
+            #        r = (xi**2)/(2*yi)
+            #        print(r)
+            #        radiussum = radiussum + r
+            #        countr = countr+1
+            #radiusses.append(radiussum/countr)
+            #countr = 0
+            #county = county + 1
+    #-----------------------------------------------------------------------------------------------------------------------
+    #print(radiusses)
+    #circle1 = plt.Circle((knifeX[0],knifeY[0]), radiusses[0])
+    #circle2 = plt.Circle((knifeX[1],knifeY[1]), radiusses[1])
+    #circle3 = plt.Circle((knifeX[2],knifeY[2]), radiusses[2])
+    #circle4 = plt.Circle((knifeX[3],knifeY[3]), radiusses[3])
 
+    #fig, ax = plt.subplots()
+    #ax.add_artist(circle1)
+    #ax.add_artist(circle2)
+    #ax.add_artist(circle3)
+    #ax.add_artist(circle4)
 
-    plt.plot(distarr[b], ysmoothed[b], "o", label="min", color='r')
-
+    #print('Knife edges: ',len(knifeX))
+    #print('Cylinders: ',len(radiusses))
+    #print(radiusses)
+    ##plt.plot(distarr[localmin], ysmoothed[localmin], "o", label="min", color='r')
     plt.plot(knifeX,knifeY,'x')
+    #plt.plot(sknifeX,knifeY,'x')
     plt.plot(distarr,heightarr,'-')
-    plt.plot(distarr,ysmoothed,'-')
-    #plt.plot(xintersect,yintersect,'m-')
-    
+    #plt.plot(distarr,ysmoothed,'-')
+    plt.plot(xintersect,yintersect,'m-')
     plt.show()
 
     return knifeX, knifeY
 
 
-def Cylinders(xintersect, yintersect, wavel, distarr, heightarr, Rheight, Theight):
+#def Cylinders(xintersect, yintersect, wavel, distarr, heightarr, Rheight, Theight, knifeX):
 
-    ysmoothed = gaussian_filter1d(heightarr,sigma=4)
+    #ysmoothed = gaussian_filter1d(heightarr,sigma=4)
 
-    ysmoothed[0] = Theight
-    ysmoothed[-1] = Rheight
+    #ysmoothed[0] = Theight
+    #ysmoothed[-1] = Rheight
 
-    b = (np.diff(np.sign(np.diff(ysmoothed))) > 0).nonzero()[0] + 1
+    #localmin = (np.diff(np.sign(np.diff(ysmoothed))) > 0).nonzero()[0] + 1
+    #lovalmax = (np.diff(np.sign(np.diff(ysmoothed))) < 0).nonzero()[0] + 1
+
+    #for i in range(len(localmin)-1):
+     #   heightarr[localmin[i]:localmin[i+1]]
+     #   distarr[localmin[i]:localmin[i+1]]
+        
+
+    #plt.plot(xintersect[d], yintersect[d], "o", label="min", color='r')
+    #plt.plot(distarr,heightarr,'-')
+    #plt.plot(distarr,ysmoothed,'-')
+    #plt.plot(xintersect,yintersect,'m-')
+    #plt.show()
+
 
 #def ITUNLoS(): #10 MHz and above
 
@@ -378,7 +441,8 @@ def Bullington(Xcoords,Ycoords,wavel):
     bTR = Ry - mTR*Rx
     ldy = 0
 
-    for xcoord, ycoord in zip(Xcoords[1:(len(Xcoords)-1)],Ycoords[1:(len(Ycoords)-1)]):
+    for xcoord, ycoord in zip(Xcoords[1:(len(Xcoords)-2)],Ycoords[1:(len(Ycoords)-2)]):
+        #print(xcoord)
         LoSy = mTR*xcoord + bTR
         if LoSy < ycoord:
             ldy = ycoord
@@ -388,11 +452,11 @@ def Bullington(Xcoords,Ycoords,wavel):
     m2 = 0
     b2 = 0
 
-    for xcoord, ycoord in zip(Xcoords[1:(len(Xcoords)-1)],Ycoords[1:(len(Ycoords)-1)]):     #!?
+    for xcoord, ycoord in zip(Xcoords[1:(len(Xcoords)-2)],Ycoords[1:(len(Ycoords)-2)]):     #!?
         mtemp1 = (ycoord-Ty)/(xcoord-Tx)
         mtemp2 = (Ry-ycoord)/(Rx-xcoord)
-        print(mtemp1)
-        print(mtemp2)
+        #print(mtemp1)
+        #print(mtemp2)
 
         if ldy > 0:
             if mtemp1 > m1:
@@ -418,9 +482,10 @@ def Bullington(Xcoords,Ycoords,wavel):
     #print("m2: ",m2)
     #print("Lenth: ",len(Xcoords)) 
     #print(Xcoords[:(len(Xcoords))])#!?
-    #plt.plot(Xcoords,Ycoords,'-')
-    #plt.plot([Tx,Xpoint,Rx],[Ty,Ypoint,Ry],'-')
-    #plt.show()
+    #print(Xcoords)
+    plt.plot(Xcoords,Ycoords,'-')
+    plt.plot([Tx,Xpoint,Rx],[Ty,Ypoint,Ry],'-')
+    plt.show()
     return FresnelKirchoff([Tx,Xpoint,Rx],[Ty,Ypoint,Ry],wavel)
 
 def EpsteinPeterson(Xcoords,Ycoords,wavel):
@@ -496,6 +561,53 @@ def Vogler(Xcoords,Ycoords,wavel):
 
     jj = nsum(lambda x: exp(-x**2), [-inf, inf])
 
+def DeltaBullington(Xcoords,Ycoords,wavel):
+    re = 1
+    Ce = 1/re
+    Stim = 0
+    hts = Ycoords[0]
+    hrs = Ycoords[-1]
+    d = Xcoords[-1]-Xcoords[0]
+    Str = (hrs-hts)/(d)
+    Luc = 0
+
+    for i in range(len(Xcoords)-2):
+        di = Xcoords[i+1]-Xcoords[0]
+        hi = Ycoords[i+1]
+        stim = (hi+500*Ce*di*(d-di)-hts)/di
+        if stim > Stim:
+            Stim = stim
+    Vmax = 0
+    if Stim < Str: #Path is LoS
+        for i in range(len(Xcoords)-2):
+            di = Xcoords[i+1]-Xcoords[0]
+            hi = Ycoords[i+1]
+            vmax = (hi+500*Ce*di*(d-di)-(hts*(d-di)+hrs*di)/d)*((0.002*d)/(wavel*di*(d-di)))**(1/2)
+            if vmax > Vmax:
+                Vmax = vmax
+
+        if Vmax > -0.78:
+            Jv = 6.9+20*math.log(math.sqrt((Vmax-0.1)**2+1)+Vmax-0.1)
+            Luc = Jv
+        else:
+            Jv = 0
+            Luc = Jv
+
+    if Stim >= Str: #Path is trans-horizon
+        Srim = 0
+        for i in range(len(Xcoords)-2):
+            di = Xcoords[i+1]-Xcoords[0]
+            hi = Ycoords[i+1]
+            srim = (hi + 500*Ce*di*(d-di)-hrs)/(d-di)
+            if srim > Srim:
+                Srim = srim
+        db = (hrs-hts+Srim*d)/(Stim+Srim)
+        vb = (hts+Stim*db-((hts*(d-db)+hrs*db)/d))*math.sqrt((0.002*d)/(wavel*db*(d-db)))
+        Luc = 6.9+20*math.log(math.sqrt((vb-0.1)**2+1)+vb-0.1)
+
+    Lb = Luc + (1-math.exp(-Luc/6))*(10+0.02*d)
+    return Lb
+
 
 
 
@@ -504,24 +616,40 @@ def Vogler(Xcoords,Ycoords,wavel):
 
 def main():
     #the transmitter is at point zero on the distnace axis
-    intlength = 17400 #meter
-    rheight = 50 #meter
-    theight = 50 #meter
-    frequency = 600000000 #Hz
+    intlength = 85000 #meter
+    rheight = 30 #meter
+    theight = 30 #meter
+    frequency = 1000000000 #Hz
 
     wavel = WaveLength(frequency)
     #print(wavel)
-    distarr, heightarr = TerrainDivide("C:/Users/marko/Desktop/FYP/Book5.csv",intlength,1)
+    distarr, heightarr = TerrainDivide("C:/Users/marko/Desktop/FYP/Book2.csv",intlength,1)
     xintersect, yintersect,Tdist,Theight,Rdist,Rheight = FresnelZoneClearance(distarr,heightarr,rheight,theight,wavel)
 
-    knifeX, knifeY = KnifeEdges(xintersect, yintersect, wavel, distarr, heightarr, Rheight, Theight)
+    knifeX, knifeY = KnifeEdges(xintersect, yintersect, wavel, distarr, heightarr, Rheight, Theight, 1)
+    #Cylinders(xintersect, yintersect, wavel, distarr, heightarr, Rheight, Theight, knifeX)
 
     #ObstacleSmoothness(xintersect, yintersect, wavel)
 
     #Jv = FresnelKirchoff(20,10000,5000,wavel)
     #A = ITUSingleRounded(20,10000,5000,wavel,15)
+    Xcoords = knifeX
+    Xcoords.append(distarr[-1])
+    Xcoords.insert(0,distarr[0])
+    Ycoords = knifeY
+    Ycoords.append(rheight+heightarr[-1])
+    Ycoords.insert(0,theight+heightarr[0])
+    print(Xcoords)
+    print(Ycoords)
 
-    #L = Bullington([0,7000,12000,22000,26000],[0,30,30,20,0],wavel)
+    #L = Bullington(Xcoords,Ycoords,wavel)
+    #L = Bullington([0,7000,12000,22000,26000],[0,30,50,20,0],wavel)
+    #L = EpsteinPeterson(Xcoords,Ycoords,wavel)
+    #L = Deygout(Xcoords,Ycoords,wavel)
+    L = DeltaBullington(Xcoords,Ycoords,wavel)
+
+    print(L," dB")
+
     #L = EpsteinPeterson([0,7000,12000,22000,26000],[0,30,50,20,0],wavel)
     #L = Deygout([0,7000,12000,22000,26000],[0,30,50,20,0],wavel)
     #print('Loss: ',L)
