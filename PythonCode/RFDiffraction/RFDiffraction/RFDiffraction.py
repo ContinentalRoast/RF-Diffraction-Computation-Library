@@ -6,8 +6,9 @@ from tkinter import filedialog
 import pandas as pd
 import numpy as np
 from pandas import read_csv
-#import matplotlib
-#from sympy import Ellipse, Poinr, Rational
+import matplotlib
+
+#from sympy import Ellipse,  Rational
 import matplotlib.pyplot as plt
 import sympy as sp
 from scipy.integrate import quad
@@ -17,44 +18,39 @@ from mpmath import nsum
 from scipy.ndimage.filters import gaussian_filter1d
 from scipy.signal import find_peaks
 
+import seaborn as sns
+sns.set()
+
+
+
 
 def WaveLength(frequency):
     c = 300000000 #speed of light m/s
     wavel = c/frequency #wavelength or lambda
     return wavel
 
-def TerrainDivide(fname, intlength,ptpindex):
-    Dist = []
-    Height = []
-    #filename = filedialog.askopenfilename(initialdir =  "/", title = "Select A File", filetype =(("csv files","*.csv"),("all files","*.*")))
-    filename = fname
-    dist = []
-    heig = []
-    ofile = open(filename,'r')
-    reader = csv.reader(ofile, delimiter=',')
-    for row in reader:
-        dist.append(row[0])
-        heig.append(row[1])
-        
-    x = np.array(dist[1:])
-    Dist= x.astype(np.float)
-    Dist = Dist*1000
-    
-    y = np.array(heig[1:])
-    Height = y.astype(np.float)
+def GetTerrain(fname): 
+
+    df = pd.read_csv(fname)
+
+    return df, df.columns
+
+def TerrainDivide(data, colnamex, colnamey, intlength, iterationNum): 
+
+    pathlength = intlength*iterationNum
+
+    pathdata = data[[colnamex,colnamey]]
+    pathdata = pathdata.dropna().astype(float)
+
+    pathdata = pathdata.loc[pathdata[colnamex] <= pathlength]
+
+    distarr = np.asarray(pathdata[colnamex])
+    heightarr = np.asarray(pathdata[colnamey])
 
 
-    if Dist[-1] > intlength:
-        index = np.where(Dist >= intlength)
-        pindex = index[0][0]
-    else:
-       pindex = len(Dist)
+    return distarr, heightarr
 
-    #plt.plot(Dist[:pindex], Height[:pindex],'-')
-    #plt.show()
-    return Dist[:pindex], Height[:pindex]
-
-def FresnelZoneClearance(distarr,heightarr,rheight,theight,wavel):
+def FresnelZoneClearance(distarr,heightarr,rheight,theight,wavel, plotZone = 0):
 
     Tdist = distarr[0] 
     Theight = theight + heightarr[0]
@@ -65,28 +61,6 @@ def FresnelZoneClearance(distarr,heightarr,rheight,theight,wavel):
     b = Theight
     length = math.sqrt(Rdist**2+(Rheight-Theight)**2)
     rangle = np.arctan((Rheight-Theight)/Rdist)
-
-    #---------------------------------------------------------------------------------------------------------------------------
-    #The following section of commented code was used to test ellipse obtained from the matplotlib.patches Ellipse function
-    #against the ellipse function as descriped by Fresnel
-
-    #cx = distarr[len(distarr)//2-1]
-    #cy = m*cx+b
-    
-
-    #R = ((wavel*(length/2)**2)/(length))**(1/2)
-
-    #angle = np.arctan((Rheight-Theight)/Rdist)*180/np.pi
-    
-
-    #ells = Ellipse((cx, cy), length, R*2, angle)
-
-    #print(ells.get_path)
-
-    #a = plt.subplot()
-
-    #a.add_artist(ells)
-    #---------------------------------------------------------------------------------------------------------------------------
 
     RadiusXValues1 = []
     RadiusXValues2 = []
@@ -108,8 +82,7 @@ def FresnelZoneClearance(distarr,heightarr,rheight,theight,wavel):
         RadiusYValues1.append(y1)
         RadiusYValues2.append(y2)
 
-    plt.plot(RadiusXValues2,RadiusYValues2,'k-')
-    plt.plot(RadiusXValues1,RadiusYValues1,'-')
+    
 
     xintersect = []
     yintersect = []
@@ -117,28 +90,21 @@ def FresnelZoneClearance(distarr,heightarr,rheight,theight,wavel):
     for xcoord, ycoord in zip(distarr,heightarr):
         index = np.where(RadiusXValues2 >= xcoord)
         pIndex = index[0][0]
-        #print(xcoord)
-        #print(RadiusXValues2[pIndex])
-        #print('---------------')
+
 
         if ycoord >= RadiusYValues2[pIndex]:
             xintersect.append(xcoord)
             yintersect.append(ycoord)
 
-
-    
-
-
-    plt.plot(distarr,heightarr,'-')
-   #plt.plot(distarr,ysmoothed,'-')
-    plt.plot(xintersect,yintersect,'m-')
-    plt.plot((Tdist,Rdist),(Theight,Rheight),'r-')
-    plt.show()
+    if plotZone == 1:
+        plt.plot(RadiusXValues2,RadiusYValues2,'k-')
+        plt.plot(RadiusXValues1,RadiusYValues1,'-')
+        plt.plot(distarr,heightarr,'-')
+        plt.plot(xintersect,yintersect,'m-')
+        plt.plot((Tdist,Rdist),(Theight,Rheight),'r-')
+        plt.show()
 
     return xintersect, yintersect, Tdist, Theight, Rdist, Rheight
-
-
-
 
 def KnifeEdges(xintersect, yintersect, wavel, distarr, heightarr, Rheight, Theight, cylinders):
 
@@ -256,13 +222,10 @@ def ITUSpericalEarthDiffraction(d,wavel,h1,h2):
             if Ah < 0:
                 L = 0
             else:
-                A = [1-h/hreq]*Ah
+                A = (1-h/hreq)*Ah
                 L = A
 
     return L
-
-    
-
 
 def ITUNLoS(d,wavel,h1,h2,ae):
 
@@ -303,19 +266,21 @@ def ITUNLoS(d,wavel,h1,h2,ae):
     L = -(FX + GY1 + GY2)
 
     print('X: ',X)
+    X3.append(X)
     print('Y1: ',Y1)
+    Y1_4.append(Y1)
     print('Y2: ',Y2)
-
+    Y2_5.append(Y2)
     print('FX: ',FX)
+    FX6.append(FX)
     print('GY1: ',GY1)
+    GY1_7.append(GY1)
     print('GY2: ',GY2)
+    GY2_8.append(GY2)
 
-    
-    print('20log(E/E0) = ',L)
+   
 
     return L
-
-
 
 def ObstacleValues(Xcoords,Ycoords):
     distance1 = ((Xcoords[1]-Xcoords[0])**2+(Ycoords[1]-Ycoords[0])**2)**(1/2)
@@ -493,7 +458,7 @@ def ITUTwoRounded(Xcoords,Ycoords,radii,wavel):
 
         return (L1+L2-Tc)
 
-def Bullington(Xcoords,Ycoords,wavel):
+def Bullington(Xcoords,Ycoords,wavel): ####
     Tx = Xcoords[0]
     Ty = Ycoords[0]
     Rx = Xcoords[len(Xcoords)-1]
@@ -620,7 +585,7 @@ def Deygout(Xcoords,Ycoords,wavel):
     L = DeygoutLoss(Xcoords,Ycoords,wavel,FresnelParams)
     print(L)
 
-def Vogler(Xcoords,Ycoords,wavel):
+def Vogler(Xcoords,Ycoords,wavel): ####
     r = []
     #heights = []
     #Theight = Ycoords[0]
@@ -726,6 +691,7 @@ def DeltaBullingtonA(Xcoords,Ycoords,wavel):
 def DeltaBullingtonB(Xcoords,Ycoords,wavel):
     Lba = DeltaBullingtonA(Xcoords,Ycoords,wavel)
     print('Lba: ',Lba)
+    Lba9.append(Lba)
     d = Xcoords[-1]-Xcoords[0]
     hts = Ycoords[0]
     hrs = Ycoords[-1]
@@ -774,7 +740,9 @@ def DeltaBullingtonB(Xcoords,Ycoords,wavel):
     h_aksent_ts = hts - hst
     h_aksent_rs = hrs - hsr
     print('hts aksent:',h_aksent_ts)
+    h_ts1.append(h_aksent_ts)
     print('hrs aksent:',h_aksent_rs)
+    h_rs2.append(h_aksent_rs)
 
     Xc = Xcoords
     #Yc = Ycoords
@@ -784,63 +752,32 @@ def DeltaBullingtonB(Xcoords,Ycoords,wavel):
     Yc[-1] = h_aksent_rs
     Lbs = DeltaBullingtonA(Xc,Yc,wavel)
     print('Lbs ',Lbs," dB")
+    Lbs10.append(Lbs)
     Lsph = ITUSpericalEarthDiffraction(d,wavel,h_aksent_ts,h_aksent_rs)
 
     print('Lsph: ',Lsph)
+    Lsph11.append(Lsph)
 
     L = Lba + (Lsph - Lbs)
+    L12.append(L)
 
     return L
     
 
 
 def main():
-    #the transmitter is at point zero on the distnace axis
-    intlength = 200000 #meter
-    rheight = 30 #meter
-    theight = 30 #meter
-    frequency = 1000000000 #Hz
+    intlength = 14 #meter
+    rheight = 50 #meter
+    theight = 50 #meter
 
-    wavel = WaveLength(frequency)
-    #print(wavel)
-    distarr, heightarr = TerrainDivide("C:/Users/marko/Desktop/FYP/Book2.csv",intlength,1)
-    #xintersect, yintersect,Tdist,Theight,Rdist,Rheight = FresnelZoneClearance(distarr,heightarr,rheight,theight,wavel)
+    f = 1000000000 #Hz
+    wavel = WaveLength(f)
+    data, colnames = GetTerrain("C:/Users/marko/Desktop/FYP/testdata.csv")
+    distarr, heightarr = TerrainDivide(data,colnames[0],colnames[1],intlength,2)
+    rheight = 50
+    theight = 50
 
-    #knifeX, knifeY = KnifeEdges(xintersect, yintersect, wavel, distarr, heightarr, Rheight, Theight, 1)
-    #Cylinders(xintersect, yintersect, wavel, distarr, heightarr, Rheight, Theight, knifeX)
-
-    #ObstacleSmoothness(xintersect, yintersect, wavel)
-
-    #Jv = FresnelKirchoff(20,10000,5000,wavel)
-    #A = ITUSingleRounded(20,10000,5000,wavel,15)
-    #Xcoords = knifeX
-    #Xcoords.append(distarr[-1])
-    #Xcoords.insert(0,distarr[0])
-    #Ycoords = knifeY
-    #Ycoords.append(rheight+heightarr[-1])
-    #Ycoords.insert(0,theight+heightarr[0])
-    #print(Xcoords)
-    #print(Ycoords)
-    bXcoords = distarr
-    #print(bXcoords)
-    bYcoords = heightarr
-    bYcoords[-1] = (rheight+heightarr[-1])
-    bYcoords[0] = (theight+heightarr[0])
-    #L = Bullington(Xcoords,Ycoords,wavel)
-    #L = Bullington([0,7000,12000,22000,26000],[0,30,50,20,0],wavel)
-    #L = EpsteinPeterson(Xcoords,Ycoords,wavel)
-    #L = Deygout(Xcoords,Ycoords,wavel)
-
-    L = DeltaBullingtonB(bXcoords/1000,bYcoords,wavel)
-
-    
-    print(L)
-
-    #L = EpsteinPeterson([0,7000,12000,22000,26000],[0,30,50,20,0],wavel)
-    #L = Deygout([0,7000,12000,22000,26000],[0,30,50,20,0],wavel)
-    #print('Loss: ',L)
-
-
+    #xintersect, yintersect, Tdist, Theight, Rdist, Rheight = FresnelZoneClearance(distarr,heightarr,rheight,theight,wavel,plotZone = 1)
 
 if __name__ == '__main__':
     main()
