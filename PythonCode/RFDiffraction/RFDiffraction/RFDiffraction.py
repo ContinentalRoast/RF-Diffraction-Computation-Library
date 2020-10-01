@@ -18,24 +18,28 @@ from mpmath import nsum
 from scipy.ndimage.filters import gaussian_filter1d
 from scipy.signal import find_peaks
 
+from scipy.signal import argrelextrema
+
 import seaborn as sns
 sns.set()
 
+import time
 
-
-
+#
 def WaveLength(frequency):
     c = 300000000 #speed of light m/s
     wavel = c/frequency #wavelength or lambda
     return wavel
 
+#
 def GetTerrain(fname): 
 
     df = pd.read_csv(fname)
 
     return df, df.columns
 
-def TerrainDivide(data, colnamex, colnamey, intlength, iterationNum): 
+#
+def TerrainDivide(data, colnamex, colnamey, intlength, iterationNum, distunitskm = 0): 
 
     pathlength = intlength*iterationNum
 
@@ -47,9 +51,12 @@ def TerrainDivide(data, colnamex, colnamey, intlength, iterationNum):
     distarr = np.asarray(pathdata[colnamex])
     heightarr = np.asarray(pathdata[colnamey])
 
+    if distunitskm == 1:
+        distarr = distarr*1000
 
     return distarr, heightarr
 
+#
 def FresnelZoneClearance(distarr,heightarr,rheight,theight,wavel, plotZone = 0):
 
     Tdist = distarr[0] 
@@ -106,15 +113,19 @@ def FresnelZoneClearance(distarr,heightarr,rheight,theight,wavel, plotZone = 0):
 
     return xintersect, yintersect, Tdist, Theight, Rdist, Rheight
 
-def KnifeEdges(xintersect, yintersect, wavel, distarr, heightarr, Rheight, Theight, cylinders):
+##
+def KnifeEdges(xintersect, yintersect, wavel, distarr, heightarr, Rheight, Theight, sensitivity, cylinders = 0, plotoutput = 0):
 
-    ysmoothed = gaussian_filter1d(heightarr,sigma=4)
+    ysmoothed = gaussian_filter1d(heightarr,sigma=sensitivity)
     ysmoothed[0] = Theight
     ysmoothed[-1] = Rheight
 
     localmin = (np.diff(np.sign(np.diff(ysmoothed))) > 0).nonzero()[0] + 1         #local minimums
     localmax = (np.diff(np.sign(np.diff(ysmoothed))) < 0).nonzero()[0] + 1         # local max
-
+    #print(localmin)
+    #localmaxi = argrelextrema(ysmoothed, np.greater)
+    #localmini = argrelextrema(ysmoothed, np.less)
+    #print(localmini)
     peakIndeces = []
     knifeX = []
     knifeY = []
@@ -122,10 +133,9 @@ def KnifeEdges(xintersect, yintersect, wavel, distarr, heightarr, Rheight, Theig
 
     #Get knife edges--------------------------------------------------------------------------------------------------------
     for i in range(len(localmin)-1):
+        
         hindex = np.where(heightarr[localmin[i]:localmin[i+1]] == heightarr[localmin[i]:localmin[i+1]].max())[0][0]
         peakIndeces.append(hindex+localmin[i])
-
-
 
     for i in range(len(peakIndeces)):
         X = distarr[peakIndeces[i]]
@@ -134,65 +144,58 @@ def KnifeEdges(xintersect, yintersect, wavel, distarr, heightarr, Rheight, Theig
             knifeY.append(heightarr[peakIndeces[i]])
             knifeX.append(X)
             sknifeX.append(distarr[localmax[i]])
+
     #-----------------------------------------------------------------------------------------------------------------------
 
     #Get cylinder radiusses-------------------------------------------------------------------------------------------------
-    radiusses = []
-    county = 0
-    countr = 0
-    p1 = 25
-    p3 = 75
-    for i in range(len(localmin)-1):
-        g = np.where(np.logical_and(xintersect>distarr[localmin[i]], xintersect<distarr[localmin[i+1]]))
-        radiussum = 0
-        if len(g[0]):
-            fi = len(g[0])-1
-            middley = (max(yintersect[g[0][0]:g[0][fi]])-min(yintersect[g[0][0]:g[0][fi]]))/2
-            q1 = np.percentile(xintersect[g[0][0]:g[0][fi]],p1)
-            q3 = np.percentile(xintersect[g[0][0]:g[0][fi]],p3)
-            middlex = (q3-q1)/2
-            if((middlex == 0)|(middley==0)):
+    if cylinders == 1:
+        radiusses = []
+        county = 0
+        countr = 0
+        p1 = 25
+        p3 = 75
+
+        for i in range(len(localmin)-1):
+            cylindexes = np.where(np.logical_and(xintersect>distarr[localmin[i]], xintersect<distarr[localmin[i+1]]))
+            g = cylindexes[0]
+            if len(g)>1:
+                middley = (max(yintersect[g[0]:g[-1]]) - min(yintersect[g[0]:g[-1]]))/2
+                q1 = np.percentile(xintersect[g[0]:g[-1]],p1)
+                q3 = np.percentile(xintersect[g[0]:g[-1]],p3)
+                middlex = (q3-q1)/2
+                if((middlex == 0)|(middley==0)):
+                    radiusses.append(0)
+                else:
+                    radiusses.append(middlex)
+            elif len(g) == 1:
                 radiusses.append(0)
-            else:
-                radiusses.append(middlex)
-            #fi = len(g[0])-1
-            #averageX = sum(xintersect[g[0][0]:g[0][fi]])/(fi+1)
-            #for xc, yc in zip(xintersect[g[0][0]:g[0][fi]],yintersect[g[0][0]:g[0][fi]]):
-            #    xi = abs(averageX-xc)
-            #    yi = knifeY[county]-yc
-            #    if((yi!=0)&(xi!=0)):
-            #        r = (xi**2)/(2*yi)
-            #        print(r)
-            #        radiussum = radiussum + r
-            #        countr = countr+1
-            #radiusses.append(radiussum/countr)
-            #countr = 0
-            #county = county + 1
+    
+        if plotoutput == 1:
+            from matplotlib.collections import PatchCollection
+            from matplotlib import cm 
+            fig, ax = plt.subplots() 
+            circles = []
+            for x1, y1, r in zip(knifeX,knifeY,radiusses):
+                circle = plt.Circle((x1,y1), r)
+                circles.append(circle)
+
+            p = PatchCollection(circles, cmap = cm.prism, alpha = 0.4)
+            ax.add_collection(p)
+
+
     #-----------------------------------------------------------------------------------------------------------------------
-    #print(radiusses)
-    #circle1 = plt.Circle((knifeX[0],knifeY[0]), radiusses[0])
-    #circle2 = plt.Circle((knifeX[1],knifeY[1]), radiusses[1])
-    #circle3 = plt.Circle((knifeX[2],knifeY[2]), radiusses[2])
-    #circle4 = plt.Circle((knifeX[3],knifeY[3]), radiusses[3])
 
-    #fig, ax = plt.subplots()
-    #ax.add_artist(circle1)
-    #ax.add_artist(circle2)
-    #ax.add_artist(circle3)
-    #ax.add_artist(circle4)
+    if plotoutput == 1:
+        plt.plot(knifeX,knifeY,'x')
+        plt.plot(distarr,heightarr,'-')
+        plt.plot(xintersect,yintersect,'m-')
+        plt.show()
 
-    #print('Knife edges: ',len(knifeX))
-    #print('Cylinders: ',len(radiusses))
-    #print(radiusses)
-    ##plt.plot(distarr[localmin], ysmoothed[localmin], "o", label="min", color='r')
-    plt.plot(knifeX,knifeY,'x')
-    #plt.plot(sknifeX,knifeY,'x')
-    plt.plot(distarr,heightarr,'-')
-    #plt.plot(distarr,ysmoothed,'-')
-    plt.plot(xintersect,yintersect,'m-')
-    plt.show()
-
-    return knifeX, knifeY
+    knifeX.append(distarr[-1])
+    knifeX.insert(0,distarr[0])
+    knifeY.append(Rheight)
+    knifeY.insert(0,Theight)
+    return knifeX, knifeY, radiusses
 
 def ITUSpericalEarthDiffraction(d,wavel,h1,h2):
     L = 0
@@ -266,22 +269,23 @@ def ITUNLoS(d,wavel,h1,h2,ae):
     L = -(FX + GY1 + GY2)
 
     print('X: ',X)
-    X3.append(X)
+    #X3.append(X)
     print('Y1: ',Y1)
-    Y1_4.append(Y1)
+    #Y1_4.append(Y1)
     print('Y2: ',Y2)
-    Y2_5.append(Y2)
+    #Y2_5.append(Y2)
     print('FX: ',FX)
-    FX6.append(FX)
+    #FX6.append(FX)
     print('GY1: ',GY1)
-    GY1_7.append(GY1)
+    #GY1_7.append(GY1)
     print('GY2: ',GY2)
-    GY2_8.append(GY2)
+    #GY2_8.append(GY2)
 
    
 
     return L
 
+#
 def ObstacleValues(Xcoords,Ycoords):
     distance1 = ((Xcoords[1]-Xcoords[0])**2+(Ycoords[1]-Ycoords[0])**2)**(1/2)
     distance2 = ((Xcoords[2]-Xcoords[1])**2+(Ycoords[2]-Ycoords[1])**2)**(1/2)
@@ -291,32 +295,30 @@ def ObstacleValues(Xcoords,Ycoords):
     height = Ycoords[1]-(mLoS*Xcoords[1]+bLoS)
     return distance1,distance2,height
 
-def FresnelKirchoff(Xcoords,Ycoords,wavel):
+#
+def FresnelKirchoff(Xcoords,Ycoords,wavel, meth = 0):
 
     distance1,distance2,height = ObstacleValues(Xcoords,Ycoords)
-    #print('Height: ',height,'d1:',distance1,'d2',distance2)
     v = height*math.sqrt(2/wavel*(1/(distance1)+1/(distance2)))
 
+    if meth == 1:
     #METHOD 1
-    #s = sp.Symbol('s')
-    #def C(s):
-    #    return math.cos((math.pi*s**2)/2)
-    #def S(s):
-    #    return math.sin((math.pi*s**2)/2)
+        s = sp.Symbol('s')
+        def C(s):
+            return math.cos((math.pi*s**2)/2)
+        def S(s):
+            return math.sin((math.pi*s**2)/2)
 
-    #Cv = quad(C,0,v)
-    #Sv = quad(S,0,v)
-    #print(Cv[0])
-    #print(Sv[0])
+        Cv = quad(C,0,v)
+        Sv = quad(S,0,v)
 
+    if meth == 0:
     #METHOD 2
-    #print(special.fresnel(v)[1])    #C(v)
-    #print(special.fresnel(v)[0])    #S(v)
-    Vals = special.fresnel(v)
-    Cv = Vals[1]
-    Sv = Vals[0]
+        Vals = special.fresnel(v)
+        Cv = Vals[1]
+        Sv = Vals[0]
+
     Jv = -20*math.log10(math.sqrt((1-Cv-Sv)**2+(Cv-Sv)**2)/2)  #J(v) is the diffraction loss in dB
-    #print(Jv)
     return Jv
 
 def ITUSingleRounded(Xcoords,Ycoords,wavel,radius):
@@ -458,7 +460,8 @@ def ITUTwoRounded(Xcoords,Ycoords,radii,wavel):
 
         return (L1+L2-Tc)
 
-def Bullington(Xcoords,Ycoords,wavel): ####
+#
+def Bullington(Xcoords,Ycoords,wavel,plotIlludtation = 0): ####
     Tx = Xcoords[0]
     Ty = Ycoords[0]
     Rx = Xcoords[len(Xcoords)-1]
@@ -470,8 +473,6 @@ def Bullington(Xcoords,Ycoords,wavel): ####
     bTR = Ry - mTR*Rx
     ldy = 0
 
-    print(Xcoords)
-    print(Xcoords[1:(len(Xcoords)-1)])
 
     for xcoord, ycoord in zip(Xcoords[1:(len(Xcoords)-1)],Ycoords[1:(len(Ycoords)-1)]):
         LoSy = mTR*xcoord + bTR
@@ -496,8 +497,7 @@ def Bullington(Xcoords,Ycoords,wavel): ####
     for xcoord, ycoord in zip(Xcoords[1:(len(Xcoords)-1)],Ycoords[1:(len(Ycoords)-1)]):     #!?
         mtemp1 = (ycoord-Ty)/(xcoord-Tx)
         mtemp2 = (Ry-ycoord)/(Rx-xcoord)
-        print(mtemp1)
-        print(mtemp2)
+
 
         #if ldy > 0:
         #    if mtemp1 > m1:
@@ -539,17 +539,15 @@ def Bullington(Xcoords,Ycoords,wavel): ####
     if detM == 0:
         Xpoint = (b2-b1)/(m1-m2)
         Ypoint = m1*Xpoint+b1
-    #print('Ypoint:',Ypoint)
-    #print("m1: ",m1)
-    #print("m2: ",m2)
-    #print("Lenth: ",len(Xcoords)) 
-    #print(Xcoords[:(len(Xcoords))])#!?
-    #print(Xcoords)
-    plt.plot(Xcoords,Ycoords,'x')
-    plt.plot([Tx,Xpoint,Rx],[Ty,Ypoint,Ry],'-')
-    plt.show()
+
+    if plotIlludtation == 1:
+        plt.plot(Xcoords,Ycoords,'x')
+        plt.plot([Tx,Xpoint,Rx],[Ty,Ypoint,Ry],'-')
+        plt.show()
+
     return FresnelKirchoff([Tx,Xpoint,Rx],[Ty,Ypoint,Ry],wavel)
 
+#
 def EpsteinPeterson(Xcoords,Ycoords,wavel):
     NumEdges = len(Xcoords) - 2
     L = 0
@@ -559,31 +557,37 @@ def EpsteinPeterson(Xcoords,Ycoords,wavel):
 
     return L
 
-def Deygout(Xcoords,Ycoords,wavel):
-
-    def DeygoutLoss(Xcoords,Ycoords,wavel,FresnelParams): #Rekursie is stadig, improve
+#
+def Deygout(Xcoords,Ycoords,wavel,pltpaths = 0):
+    if pltpaths == 1:
+        plt.plot(Xcoords,Ycoords,'*')
+    def DeygoutLoss(Xcoords,Ycoords,wavel): #Rekursie is stadig, improve
+        NumEdges = len(Xcoords) - 2
+        FresnelParams = []
+        for i in range(NumEdges):
+            distance1, distance2, height = ObstacleValues([Xcoords[0],Xcoords[i+1],Xcoords[-1]],[Ycoords[0],Ycoords[i+1],Ycoords[-1]])
+            v = height*math.sqrt(2/wavel*(1/(distance1)+1/(distance2)))
+            FresnelParams.append(v)
         if len(Xcoords) < 3:
             return 0
         else:
             MaxV = np.where(FresnelParams == np.amax(FresnelParams))
-
+ 
             L = FresnelKirchoff([Xcoords[0],Xcoords[MaxV[0][0].astype(int)+1],Xcoords[-1]],[Ycoords[0],Ycoords[MaxV[0][0].astype(int)+1],Ycoords[-1]],wavel)
-            L = L + DeygoutLoss(Xcoords[0:(MaxV[0][0].astype(int)+2)],Ycoords[0:(MaxV[0][0].astype(int)+2)],wavel,FresnelParams[0:MaxV[0][0].astype(int)])
-            L = L + DeygoutLoss(Xcoords[(MaxV[0][0].astype(int)+1):len(Xcoords)],Ycoords[(MaxV[0][0].astype(int)+1):len(Xcoords)],wavel,
-                                FresnelParams[MaxV[0][0].astype(int)+1:len(FresnelParams)])
-                
+            if pltpaths == 1:
+                plt.plot([Xcoords[0],Xcoords[MaxV[0][0].astype(int)+1],Xcoords[-1]],[Ycoords[0],Ycoords[MaxV[0][0].astype(int)+1],Ycoords[-1]])
+            L = L + DeygoutLoss(Xcoords[0:(MaxV[0][0].astype(int)+2)],Ycoords[0:(MaxV[0][0].astype(int)+2)],wavel)
+
+            L = L + DeygoutLoss(Xcoords[(MaxV[0][0].astype(int)+1):len(Xcoords)],Ycoords[(MaxV[0][0].astype(int)+1):len(Xcoords)],wavel)
+
             return L
 
-    NumEdges = len(Xcoords) - 2
-    FresnelParams = []
+    L = DeygoutLoss(Xcoords,Ycoords,wavel)
+    if pltpaths == 1:
+        plt.show()
+    return L
 
-    for i in range(NumEdges):
-        distance1, distance2, height = ObstacleValues([Xcoords[0],Xcoords[i+1],Xcoords[-1]],[Ycoords[0],Ycoords[i+1],Ycoords[-1]])
-        v = height*math.sqrt(2/wavel*(1/(distance1)+1/(distance2)))
-        FresnelParams.append(v)
 
-    L = DeygoutLoss(Xcoords,Ycoords,wavel,FresnelParams)
-    print(L)
 
 def Vogler(Xcoords,Ycoords,wavel): ####
     r = []
@@ -763,21 +767,80 @@ def DeltaBullingtonB(Xcoords,Ycoords,wavel):
 
     return L
     
+def Giovanelli(Xcoords,Ycoords,wavel,pltpaths = 0):
+    if pltpaths == 1:
+        plt.plot(Xcoords,Ycoords,'*')
+    def DeygoutLoss(Xcoords,Ycoords,wavel): #Rekursie is stadig, improve
+        NumEdges = len(Xcoords) - 2
+        FresnelParams = []
+        for i in range(NumEdges):
+            distance1, distance2, height = ObstacleValues([Xcoords[0],Xcoords[i+1],Xcoords[-1]],[Ycoords[0],Ycoords[i+1],Ycoords[-1]])
+            v = height*math.sqrt(2/wavel*(1/(distance1)+1/(distance2)))
+            FresnelParams.append(v)
+        if len(Xcoords) < 3:
+            return 0
+        else:
+            MaxV = np.where(FresnelParams == np.amax(FresnelParams))
+ 
+            L = FresnelKirchoff([Xcoords[0],Xcoords[MaxV[0][0].astype(int)+1],Xcoords[-1]],[Ycoords[0],Ycoords[MaxV[0][0].astype(int)+1],Ycoords[-1]],wavel)
+            if pltpaths == 1:
+                plt.plot([Xcoords[0],Xcoords[MaxV[0][0].astype(int)+1],Xcoords[-1]],[Ycoords[0],Ycoords[MaxV[0][0].astype(int)+1],Ycoords[-1]])
+            L = L + DeygoutLoss(Xcoords[0:(MaxV[0][0].astype(int)+2)],Ycoords[0:(MaxV[0][0].astype(int)+2)],wavel)
 
+            L = L + DeygoutLoss(Xcoords[(MaxV[0][0].astype(int)+1):len(Xcoords)],Ycoords[(MaxV[0][0].astype(int)+1):len(Xcoords)],wavel)
+
+            return L
+
+    L = DeygoutLoss(Xcoords,Ycoords,wavel)
+    if pltpaths == 1:
+        plt.show()
+    return L
 
 def main():
-    intlength = 14 #meter
+    intlength = 140000 #meter
     rheight = 50 #meter
     theight = 50 #meter
 
-    f = 1000000000 #Hz
+    f = 50000000 #Hz
     wavel = WaveLength(f)
-    data, colnames = GetTerrain("C:/Users/marko/Desktop/FYP/testdata.csv")
-    distarr, heightarr = TerrainDivide(data,colnames[0],colnames[1],intlength,2)
+
+    #start_time = time.time()
+    data, colnames = GetTerrain("C:/Users/marko/Desktop/FYP/book5.csv")
+    end_time = time.time()
+    #print('1 Time: ',end_time-start_time)
+
+    #start_time = time.time()
+    distarr, heightarr = TerrainDivide(data,colnames[0],colnames[1],intlength,1,1)
+    #end_time = time.time()
+    #print('2 Time: ',end_time-start_time)
     rheight = 50
     theight = 50
 
-    #xintersect, yintersect, Tdist, Theight, Rdist, Rheight = FresnelZoneClearance(distarr,heightarr,rheight,theight,wavel,plotZone = 1)
+    #start_time = time.time()
+    xintersect, yintersect, Tdist, Theight, Rdist, Rheight = FresnelZoneClearance(distarr,heightarr,rheight,theight,wavel,plotZone = 1)
+    #end_time = time.time()
+    #print('3 Time: ',end_time-start_time)
+
+    #start_time = time.time()
+    knifeX, knifeY, radiusses = KnifeEdges(xintersect, yintersect, wavel, distarr, heightarr, Rheight, Theight, 4, 1,1)
+    #end_time = time.time()
+    #print('4 Time: ',end_time-start_time)
+
+    L = Bullington(knifeX,knifeY,wavel,1)
+    print('Bullington: :',L,' dB')
+
+    L = EpsteinPeterson(knifeX,knifeY,wavel)
+    print('EpsteinPeterson: :',L,' dB')
+
+    L = Deygout(knifeX,knifeY,wavel)
+    print('Deygout: :',L,' dB')
+    L = Deygouta(knifeX,knifeY,wavel)
+    print('Deygouta: :',L,' dB')
+
+    L = Deygout([0,7000,12000,22000,26000],[0,30,50,20,0],0.5)
+    print('Deygout t: :',L,' dB')
+    L = EpsteinPeterson([0,7000,12000,22000,26000],[0,30,50,20,0],0.5)
+    print('EpsteinPeterson t: :',L,' dB')
 
 if __name__ == '__main__':
     main()
