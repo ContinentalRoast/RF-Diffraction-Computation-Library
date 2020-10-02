@@ -559,7 +559,7 @@ def EpsteinPeterson(Xcoords,Ycoords,wavel):
     return L
 
 #
-def Deygout(Xcoords,Ycoords,wavel,pltIllustration = 0, fromGiovaneli = 0):
+def Deygout(Xcoords,Ycoords,wavel,pltIllustration = 0):
     if pltIllustration == 1:
         plt.plot(Xcoords,Ycoords,'*')
     def DeygoutLoss(Xcoords,Ycoords,wavel): #Rekursie is stadig, improve
@@ -585,7 +585,7 @@ def Deygout(Xcoords,Ycoords,wavel,pltIllustration = 0, fromGiovaneli = 0):
             return L
 
     L = DeygoutLoss(Xcoords,Ycoords,wavel)
-    if pltIllustration == 1 and fromGiovaneli == 0:
+    if pltIllustration == 1 :
         plt.show()
     return L
 
@@ -770,87 +770,82 @@ def DeltaBullingtonB(Xcoords,Ycoords,wavel):
     return L
     
 def Giovaneli(Xcoords,Ycoords,wavel, pltIllustration = 0):
+    def GiovaneliLoss(Xcoords,Ycoords,wavel, pltIllustration = 0):
+        if len(Xcoords) < 3:
+            return 0
+        NumEdges = len(Xcoords) - 2
+        FresnelParams = []
 
-    NumEdges = len(Xcoords) - 2
-    FresnelParams = []
-
-    for i in range(NumEdges):
-        distance1, distance2, height = ObstacleValues([Xcoords[0],Xcoords[i+1],Xcoords[-1]],[Ycoords[0],Ycoords[i+1],Ycoords[-1]])
-        v = height*math.sqrt(2/wavel*(1/(distance1)+1/(distance2)))
-        FresnelParams.append(v)
+        for i in range(NumEdges):
+            distance1, distance2, height = ObstacleValues([Xcoords[0],Xcoords[i+1],Xcoords[-1]],[Ycoords[0],Ycoords[i+1],Ycoords[-1]])
+            v = height*math.sqrt(2/wavel*(1/(distance1)+1/(distance2)))
+            FresnelParams.append(v)
         
-    MaxV = np.where(FresnelParams == np.amax(FresnelParams))
+        MaxV = np.where(FresnelParams == np.amax(FresnelParams))
 
-    yT = 0
-    yR = 0
-    FresnelParams1 = []
-    FresnelParams2 = []
-    if len(Xcoords[0:(MaxV[0][0].astype(int)+2)])>2:
-        for i in range(len(Xcoords[0:(MaxV[0][0].astype(int)+2)])-2):
-            distance1, distance2, height = ObstacleValues([Xcoords[0],Xcoords[i+1],Xcoords[MaxV[0][0].astype(int)+1]],[Ycoords[0],Ycoords[i+1],Ycoords[MaxV[0][0].astype(int)+1]])
-            v = height*math.sqrt(2/wavel*(1/(distance1)+1/(distance2)))
-            FresnelParams1.append(v)
-        MaxV1 = np.where(FresnelParams1 == np.amax(FresnelParams1))
+        yT = 0
+        yR = 0
+        FresnelParams1 = []
+        FresnelParams2 = []
+        if len(Xcoords[0:(MaxV[0][0].astype(int)+2)])>2:
+            for i in range(len(Xcoords[0:(MaxV[0][0].astype(int)+2)])-2):
+                distance1, distance2, height = ObstacleValues([Xcoords[0],Xcoords[i+1],Xcoords[MaxV[0][0].astype(int)+1]],[Ycoords[0],Ycoords[i+1],Ycoords[MaxV[0][0].astype(int)+1]])
+                v = height*math.sqrt(2/wavel*(1/(distance1)+1/(distance2)))
+                FresnelParams1.append(v)
+            MaxV1 = np.where(FresnelParams1 == np.amax(FresnelParams1))
 
-        tT1x = Xcoords[0]
-        tO1x = Xcoords[MaxV1[0][0].astype(int)+1]
-        tO1y = Ycoords[MaxV1[0][0].astype(int)+1]
+            tT1x = Xcoords[0]
+            tO1x = Xcoords[MaxV1[0][0].astype(int)+1]
+            tO1y = Ycoords[MaxV1[0][0].astype(int)+1]
 
-        tR1x = Xcoords[MaxV[0][0].astype(int)+1]
-        tR1y = Ycoords[MaxV[0][0].astype(int)+1]
+            tR1x = Xcoords[MaxV[0][0].astype(int)+1]
+            tR1y = Ycoords[MaxV[0][0].astype(int)+1]
 
-        m1 = (tR1y-tO1y)/(tR1x-tO1x)
-        b1 = tR1y - tR1x*m1
-        yT = m1*tT1x+b1
+            m1 = (tR1y-tO1y)/(tR1x-tO1x)
+            b1 = tR1y - tR1x*m1
+            yT = m1*tT1x+b1
 
-    else:
-        yT = Ycoords[0]
+        else:
+            yT = Ycoords[0]
 
-    tempX = Xcoords[(MaxV[0][0].astype(int)+1):len(Xcoords)]
-    print(tempX)
-    tempY = Ycoords[(MaxV[0][0].astype(int)+1):len(Ycoords)]
-    if len(Xcoords[(MaxV[0][0].astype(int)+1):len(Xcoords)])>2:
-        for i in range(len(Xcoords[(MaxV[0][0].astype(int)+1):len(Xcoords)])-2):
-            #distance1, distance2, height = ObstacleValues([Xcoords[MaxV[0][0].astype(int)+1],Xcoords[i+MaxV[0][0].astype(int)+2],Xcoords[-1]],[Ycoords[MaxV[0][0].astype(int)+1],Ycoords[i+MaxV[0][0].astype(int)+2],Ycoords[-1]])
-            distance1, distance2, height = ObstacleValues([tempX[0],tempX[i+1],tempX[-1]],[tempY[0],tempY[i+1],tempY[-1]])
-            v = height*math.sqrt(2/wavel*(1/(distance1)+1/(distance2)))
-            FresnelParams2.append(v)
-        MaxV2 = np.where(FresnelParams2 == np.amax(FresnelParams2))
+        tempX = Xcoords[(MaxV[0][0].astype(int)+1):len(Xcoords)]
+        tempY = Ycoords[(MaxV[0][0].astype(int)+1):len(Ycoords)]
 
-        #print(Xcoords[(MaxV[0][0].astype(int)+1):len(Xcoords)])
-        #print()
-        #print(FresnelParams2)
+        if len(Xcoords[(MaxV[0][0].astype(int)+1):len(Xcoords)])>2:
+            for i in range(len(Xcoords[(MaxV[0][0].astype(int)+1):len(Xcoords)])-2):
+                #distance1, distance2, height = ObstacleValues([Xcoords[MaxV[0][0].astype(int)+1],Xcoords[i+MaxV[0][0].astype(int)+2],Xcoords[-1]],[Ycoords[MaxV[0][0].astype(int)+1],Ycoords[i+MaxV[0][0].astype(int)+2],Ycoords[-1]])
+                distance1, distance2, height = ObstacleValues([tempX[0],tempX[i+1],tempX[-1]],[tempY[0],tempY[i+1],tempY[-1]])
+                v = height*math.sqrt(2/wavel*(1/(distance1)+1/(distance2)))
+                FresnelParams2.append(v)
+            MaxV2 = np.where(FresnelParams2 == np.amax(FresnelParams2))
 
-        tT2x = tempX[0]
-        tT2y = tempY[0]
-        tO2x = Xcoords[MaxV2[0][0].astype(int)+2+MaxV[0][0].astype(int)]
-        tO2y = Ycoords[MaxV2[0][0].astype(int)+2+MaxV[0][0].astype(int)]
-        tR2x = tempX[-1]
-        print(tT2x,' ',tT2y,' ',tO2x,' ',tO2y,' ',tR2x)
-        m2 = (tO2y-tT2y)/(tO2x-tT2x)
-        b2 = tO2y - tO2x*m2
-        yR = m2*tR2x+b2
-    else:
-        yR = Ycoords[-1]
+
+            tT2x = tempX[0]
+            tT2y = tempY[0]
+            tO2x = Xcoords[MaxV2[0][0].astype(int)+2+MaxV[0][0].astype(int)]
+            tO2y = Ycoords[MaxV2[0][0].astype(int)+2+MaxV[0][0].astype(int)]
+            tR2x = tempX[-1]
+            m2 = (tO2y-tT2y)/(tO2x-tT2x)
+            b2 = tO2y - tO2x*m2
+            yR = m2*tR2x+b2
+        else:
+            yR = Ycoords[-1]
     
-    if yT < Ycoords[0]:
-        yT = Ycoords[0]
+        if yT < Ycoords[0]:
+            yT = Ycoords[0]
 
-    if yR < Ycoords[-1]:
-        yR = Ycoords[-1]
+        if yR < Ycoords[-1]:
+            yR = Ycoords[-1]
 
-    print(Ycoords[0])
-    print(Ycoords[-1])
-    print(yT)
-    print(yR)
+        if pltIllustration == 1:
+            plt.plot([Xcoords[0],Xcoords[MaxV[0][0].astype(int)+1],Xcoords[-1]],[yT,Ycoords[MaxV[0][0].astype(int)+1],yR])
+        L = FresnelKirchoff([Xcoords[0],Xcoords[MaxV[0][0].astype(int)+1],Xcoords[-1]],[yT,Ycoords[MaxV[0][0].astype(int)+1],yR],wavel)
 
-    if pltIllustration == 1:
-        plt.plot([Xcoords[0],Xcoords[MaxV[0][0].astype(int)+1],Xcoords[-1]],[yT,Ycoords[MaxV[0][0].astype(int)+1],yR])
-    L = FresnelKirchoff([Xcoords[0],Xcoords[MaxV[0][0].astype(int)+1],Xcoords[-1]],[yT,Ycoords[MaxV[0][0].astype(int)+1],yR],wavel)
+        L = L + GiovaneliLoss(Xcoords[0:(MaxV[0][0].astype(int)+2)],Ycoords[0:(MaxV[0][0].astype(int)+2)],wavel,pltIllustration)
 
-    L = L + Deygout(Xcoords[0:(MaxV[0][0].astype(int)+2)],Ycoords[0:(MaxV[0][0].astype(int)+2)],wavel,pltIllustration,1)
-
-    L = L + Deygout(Xcoords[(MaxV[0][0].astype(int)+1):len(Xcoords)],Ycoords[(MaxV[0][0].astype(int)+1):len(Xcoords)],wavel,pltIllustration,1)
+        L = L + GiovaneliLoss(Xcoords[(MaxV[0][0].astype(int)+1):len(Xcoords)],Ycoords[(MaxV[0][0].astype(int)+1):len(Xcoords)],wavel,pltIllustration)
+        return L
+    L = GiovaneliLoss(Xcoords,Ycoords,wavel, pltIllustration)
     if pltIllustration == 1:
         plt.show()
     return L
@@ -866,24 +861,24 @@ def main():
     wavel = WaveLength(f)
 
     #start_time = time.time()
-    #data, colnames = GetTerrain("C:/Users/marko/Desktop/FYP/book3.csv")
+    data, colnames = GetTerrain("C:/Users/marko/Desktop/FYP/book3.csv")
     #end_time = time.time()
     #print('1 Time: ',end_time-start_time)
 
     #start_time = time.time()
-    #distarr, heightarr = TerrainDivide(data,colnames[0],colnames[1],intlength,1,1)
+    distarr, heightarr = TerrainDivide(data,colnames[0],colnames[1],intlength,1,1)
     #end_time = time.time()
     #print('2 Time: ',end_time-start_time)
     rheight = 50
     theight = 50
 
     #start_time = time.time()
-    #xintersect, yintersect, Tdist, Theight, Rdist, Rheight = FresnelZoneClearance(distarr,heightarr,rheight,theight,wavel,plotZone = 1)
+    xintersect, yintersect, Tdist, Theight, Rdist, Rheight = FresnelZoneClearance(distarr,heightarr,rheight,theight,wavel,plotZone = 1)
     #end_time = time.time()
     #print('3 Time: ',end_time-start_time)
 
     #start_time = time.time()
-    #knifeX, knifeY, radiusses = KnifeEdges(xintersect, yintersect, wavel, distarr, heightarr, Rheight, Theight, 4, 1,1)
+    knifeX, knifeY, radiusses = KnifeEdges(xintersect, yintersect, wavel, distarr, heightarr, Rheight, Theight, 4, 1,1)
     #end_time = time.time()
     #print('4 Time: ',end_time-start_time)
 
@@ -893,8 +888,8 @@ def main():
     #L = EpsteinPeterson(knifeX,knifeY,wavel)
     #print('EpsteinPeterson: :',L,' dB')
 
-    #L = Deygout(knifeX,knifeY,wavel,1)
-    #print('Deygout: :',L,' dB')
+    L = Deygout(knifeX,knifeY,wavel,1)
+    print('Deygout: :',L,' dB')
 
 
     L = Deygout([0,7000,12000,22000,26000],[0,30,50,20,0],0.5,1)
@@ -902,8 +897,8 @@ def main():
     L = EpsteinPeterson([0,7000,12000,22000,26000],[0,30,50,20,0],0.5)
     print('EpsteinPeterson t: :',L,' dB')
 
-    #L = Giovaneli(knifeX,knifeY,wavel)
-    #print('Giovaneli: :',L,' dB')
+    L = Giovaneli(knifeX,knifeY,wavel)
+    print('Giovaneli: :',L,' dB')
 
     L = Giovaneli([0,7000,12000,22000,26000],[0,30,50,20,0],0.5,1)
     print('Giovaneli t: :',L,' dB')
