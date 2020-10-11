@@ -25,6 +25,9 @@ sns.set()
 
 import time
 
+from matplotlib.collections import PatchCollection
+from matplotlib import cm 
+
 #
 def WaveLength(frequency):
     c = 300000000 #speed of light m/s
@@ -104,6 +107,8 @@ def FresnelZoneClearance(distarr,heightarr,rheight,theight,wavel, plotZone = 0):
             yintersect.append(ycoord)
 
     if plotZone == 1:
+        plt.xlabel('Distance (m)')
+        plt.ylabel('Height above sea level (m)')
         plt.plot(RadiusXValues2,RadiusYValues2,'k-')
         plt.plot(RadiusXValues1,RadiusYValues1,'-')
         plt.plot(distarr,heightarr,'-')
@@ -171,8 +176,7 @@ def KnifeEdges(xintersect, yintersect, wavel, distarr, heightarr, Rheight, Theig
                 radiusses.append(0)
     
         if plotoutput == 1:
-            from matplotlib.collections import PatchCollection
-            from matplotlib import cm 
+            
             fig, ax = plt.subplots() 
             circles = []
             for x1, y1, r in zip(knifeX,knifeY,radiusses):
@@ -186,6 +190,8 @@ def KnifeEdges(xintersect, yintersect, wavel, distarr, heightarr, Rheight, Theig
     #-----------------------------------------------------------------------------------------------------------------------
 
     if plotoutput == 1:
+        plt.xlabel('Distance (m)')
+        plt.ylabel('Height above sea level (m)')
         plt.plot(knifeX,knifeY,'x')
         plt.plot(distarr,heightarr,'-')
         plt.plot(xintersect,yintersect,'m-')
@@ -542,6 +548,8 @@ def Bullington(Xcoords,Ycoords,wavel,pltIllustration = 0): ####
         Ypoint = m1*Xpoint+b1
 
     if pltIllustration == 1:
+        plt.xlabel('Distance (m)')
+        plt.ylabel('Height above sea level (m)')
         plt.plot(Xcoords,Ycoords,'x')
         plt.plot([Tx,Xpoint,Rx],[Ty,Ypoint,Ry],'-')
         plt.show()
@@ -560,8 +568,7 @@ def EpsteinPeterson(Xcoords,Ycoords,wavel):
 
 #
 def Deygout(Xcoords,Ycoords,wavel,pltIllustration = 0):
-    if pltIllustration == 1:
-        plt.plot(Xcoords,Ycoords,'*')
+        
     def DeygoutLoss(Xcoords,Ycoords,wavel): #Rekursie is stadig, improve
         NumEdges = len(Xcoords) - 2
         FresnelParams = []
@@ -586,6 +593,9 @@ def Deygout(Xcoords,Ycoords,wavel,pltIllustration = 0):
 
     L = DeygoutLoss(Xcoords,Ycoords,wavel)
     if pltIllustration == 1 :
+        plt.plot(Xcoords,Ycoords,'*')
+        plt.xlabel('Distance (m)')
+        plt.ylabel('Height above sea level (m)')
         plt.show()
     return L
 
@@ -847,12 +857,66 @@ def Giovaneli(Xcoords,Ycoords,wavel, pltIllustration = 0):
         return L
     L = GiovaneliLoss(Xcoords,Ycoords,wavel, pltIllustration)
     if pltIllustration == 1:
+        plt.xlabel('Distance (m)')
+        plt.ylabel('Height above sea level (m)')
         plt.show()
+    return L
+
+def DeygoutRounded(Xcoords,Ycoords,wavel,Radiusses,pltIllustration = 0):
+    if pltIllustration == 1 :
+               
+        fig, ax = plt.subplots() 
+        circles = []
+        for x1, y1, r in zip(Xcoords[1:len(Xcoords)],Ycoords[1:len(Ycoords)],Radiusses):
+            circle = plt.Circle((x1,y1), r)
+            circles.append(circle)
+
+        p = PatchCollection(circles, cmap = cm.prism, alpha = 0.4)
+        ax.add_collection(p)
+        plt.plot(Xcoords,Ycoords,'*')
+        plt.xlabel('Distance (m)  r')
+        plt.ylabel('Height above sea level (m)  r')
+        
+    def DeygoutRoundedLoss(Xcoords,Ycoords,wavel,radiusses): #Rekursie is stadig, improve
+
+        NumEdges = len(Xcoords) - 2
+        FresnelParams = []
+
+        for i in range(NumEdges):
+            distance1, distance2, height = ObstacleValues([Xcoords[0],Xcoords[i+1],Xcoords[-1]],[Ycoords[0],Ycoords[i+1],Ycoords[-1]])
+            v = height*math.sqrt(2/wavel*(1/(distance1)+1/(distance2)))
+            FresnelParams.append(v)
+        if len(Xcoords) < 3:
+            return 0
+        else:
+            MaxV = np.where(FresnelParams == np.amax(FresnelParams))
+ 
+            L = ITUSingleRounded([Xcoords[0],Xcoords[MaxV[0][0].astype(int)+1],Xcoords[-1]],[Ycoords[0],Ycoords[MaxV[0][0].astype(int)+1],Ycoords[-1]],wavel,radiusses[MaxV[0][0].astype(int)])
+
+            if pltIllustration == 1:
+                plt.plot([Xcoords[0],Xcoords[MaxV[0][0].astype(int)+1],Xcoords[-1]],[Ycoords[0],Ycoords[MaxV[0][0].astype(int)+1],Ycoords[-1]])
+
+            L = L + DeygoutRoundedLoss(Xcoords[0:(MaxV[0][0].astype(int)+2)],Ycoords[0:(MaxV[0][0].astype(int)+2)],wavel,radiusses[0:(MaxV[0][0].astype(int)+1)]) #Python is weird en die twede parameter moet een meer wees as die index wat jy soek
+
+            L = L + DeygoutRoundedLoss(Xcoords[(MaxV[0][0].astype(int)+1):len(Xcoords)],Ycoords[(MaxV[0][0].astype(int)+1):len(Xcoords)],wavel,radiusses[MaxV[0][0].astype(int):len(radiusses)])
+
+            return L
+
+    L = DeygoutRoundedLoss(Xcoords,Ycoords,wavel,Radiusses)
+    plt.show() 
     return L
 
 
 
+
 def main():
+
+    L =  ITUSingleRounded([0,14300,21500],[0,7,0],1,150)
+    print(L)
+    L =  ITUSingleRounded([0,7400,14300],[0,-12,0],1,400)
+    print(L)
+    L =  ITUSingleRounded([0,3700,7200],[0,-13,0],1,500)
+    print(L)
     intlength = 140000 #meter
     rheight = 50 #meter
     theight = 50 #meter
@@ -861,7 +925,7 @@ def main():
     wavel = WaveLength(f)
 
     #start_time = time.time()
-    data, colnames = GetTerrain("C:/Users/marko/Desktop/FYP/book3.csv")
+    data, colnames = GetTerrain("C:/Users/marko/Desktop/FYP/book4.csv")
     #end_time = time.time()
     #print('1 Time: ',end_time-start_time)
 
@@ -879,29 +943,34 @@ def main():
 
     #start_time = time.time()
     knifeX, knifeY, radiusses = KnifeEdges(xintersect, yintersect, wavel, distarr, heightarr, Rheight, Theight, 4, 1,1)
+    print(knifeX)
+    print(radiusses)
     #end_time = time.time()
     #print('4 Time: ',end_time-start_time)
 
-    #L = Bullington(knifeX,knifeY,wavel,1)
-    #print('Bullington: :',L,' dB')
+    L = Bullington(knifeX,knifeY,wavel,1)
+    print('Bullington: :',L,' dB')
 
-    #L = EpsteinPeterson(knifeX,knifeY,wavel)
-    #print('EpsteinPeterson: :',L,' dB')
+    L = EpsteinPeterson(knifeX,knifeY,wavel)
+    print('EpsteinPeterson: :',L,' dB')
+
+    L = DeygoutRounded(knifeX, knifeY,wavel,radiusses,pltIllustration = 1)
+    print('Deygout Rounded: :',L,' dB')
 
     L = Deygout(knifeX,knifeY,wavel,1)
     print('Deygout: :',L,' dB')
 
 
-    L = Deygout([0,7000,12000,22000,26000],[0,30,50,20,0],0.5,1)
-    print('Deygout t: :',L,' dB')
-    L = EpsteinPeterson([0,7000,12000,22000,26000],[0,30,50,20,0],0.5)
-    print('EpsteinPeterson t: :',L,' dB')
+    #L = Deygout([0,7000,12000,22000,26000],[0,30,50,20,0],0.5,1)
+    #print('Deygout t: :',L,' dB')
+    #L = EpsteinPeterson([0,7000,12000,22000,26000],[0,30,50,20,0],0.5)
+    #print('EpsteinPeterson t: :',L,' dB')
 
     L = Giovaneli(knifeX,knifeY,wavel)
     print('Giovaneli: :',L,' dB')
 
-    L = Giovaneli([0,7000,12000,22000,26000],[0,30,50,20,0],0.5,1)
-    print('Giovaneli t: :',L,' dB')
+    #L = Giovaneli([0,7000,12000,22000,26000],[0,30,50,20,0],0.5,1)
+    #print('Giovaneli t: :',L,' dB')
 
 if __name__ == '__main__':
     main()
