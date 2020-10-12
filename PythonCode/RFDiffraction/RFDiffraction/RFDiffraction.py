@@ -906,8 +906,60 @@ def DeygoutRounded(Xcoords,Ycoords,wavel,Radiusses,pltIllustration = 0):
     plt.show() 
     return L
 
+def ITUMultipleCylinders(Xcoords,Ycoords,wavel,Radiusses,pltIllustration = 0): # takes terrain profile of fresnel zone intersection as input
+    print('ITU MultipleCylinders')
+    k = 4/3
+    ae = k * 6371
+    stringX = [Xcoords[0]]
+    stringY = [Ycoords[0]]
+    print('len:',len(Xcoords))
+    maxeindex = 0
+    j = 0
+    currentmaxeindex = 0
+    print(Xcoords)
+    print(Ycoords)
+    while j == 0:
+        print(maxeindex)
+        maxe = -100
+        hs = Ycoords[currentmaxeindex]
+        
+        for i in range(len(Xcoords)-1-maxeindex):
+
+            hi = Ycoords[i+1+currentmaxeindex]
+            dsi = Xcoords[i+1+currentmaxeindex] - Xcoords[currentmaxeindex]
+
+            e = ((hi - hs)/dsi)-(dsi/(2*ae))
+            m = (Ycoords[i+1+currentmaxeindex]-Ycoords[currentmaxeindex])/(Xcoords[i+1+currentmaxeindex]-Xcoords[currentmaxeindex]) #???????
+            print(i+1+currentmaxeindex)
+            print('m ',m)
+            print('e ',e)
+            if e > maxe:
+                maxe = e
+                maxeindex = i+1+currentmaxeindex
+                print(i+1+currentmaxeindex)
+        currentmaxeindex = maxeindex
+        stringX.append(Xcoords[maxeindex])
+        stringY.append(Ycoords[maxeindex])
+
+        print(maxe)
+        print(maxeindex)
+        if maxeindex == (len(Xcoords)-1):
+            j = 1
 
 
+    obstacles = {}
+    for i in range(len(Xcoords)-2):
+        Xpoint = Xcoords[i+1]
+        if Xpoint + 250 > Xcoords[i+2]:
+            obstacles[i] = [Xcoords[i+1],Xcoords[i+2]]
+
+    print(obstacles)
+
+    if pltIllustration == 1:
+        #plt.gca().set_aspect('equal', adjustable='box')
+        plt.plot(Xcoords,Ycoords,'x')
+        plt.plot(stringX,stringY,'-')
+        plt.show()
 
 def main():
 
@@ -937,16 +989,22 @@ def main():
     theight = 50
 
     #start_time = time.time()
-    xintersect, yintersect, Tdist, Theight, Rdist, Rheight = FresnelZoneClearance(distarr,heightarr,rheight,theight,wavel,plotZone = 1)
+    xintersect, yintersect, Tdist, Theight, Rdist, Rheight = FresnelZoneClearance(distarr,heightarr,rheight,theight,wavel,plotZone = 0)
     #end_time = time.time()
     #print('3 Time: ',end_time-start_time)
 
     #start_time = time.time()
-    knifeX, knifeY, radiusses = KnifeEdges(xintersect, yintersect, wavel, distarr, heightarr, Rheight, Theight, 4, 1,1)
+    knifeX, knifeY, radiusses = KnifeEdges(xintersect, yintersect, wavel, distarr, heightarr, Rheight, Theight, 4, 1,0)
     print(knifeX)
     print(radiusses)
     #end_time = time.time()
     #print('4 Time: ',end_time-start_time)
+
+
+
+    ITUMultipleCylinders(knifeX, knifeY,wavel,radiusses,pltIllustration = 1)
+
+
 
     L = Bullington(knifeX,knifeY,wavel,1)
     print('Bullington: :',L,' dB')
