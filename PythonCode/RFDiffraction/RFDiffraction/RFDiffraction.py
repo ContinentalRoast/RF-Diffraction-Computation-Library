@@ -310,7 +310,8 @@ def FresnelKirchoff(Xcoords,Ycoords,wavel, meth = 0):
 
     distance1,distance2,height = ObstacleValues(Xcoords,Ycoords)
     v = height*math.sqrt(2/wavel*(1/(distance1)+1/(distance2)))
-
+    Cv = 0
+    Sv = 0
     if meth == 1:
     #METHOD 1
         s = sp.Symbol('s')
@@ -908,7 +909,7 @@ def DeygoutRounded(Xcoords,Ycoords,wavel,Radiusses,pltIllustration = 0):
         plt.show() 
     return L
 
-def ITUMultipleCylinders(Xcoords,Ycoords,wavel,Radiusses,rheight,theight,pltIllustration = 0): # takes terrain profile of fresnel zone intersection as input
+def ITUMultipleCylinders(Xcoords,Ycoords,wavel,rheight,theight,pltIllustration = 0): # takes terrain profile of fresnel zone intersection as input
     #print('ITU MultipleCylinders')
     k = 4/3
     ae = k * 6371
@@ -1013,9 +1014,13 @@ def ITUMultipleCylinders(Xcoords,Ycoords,wavel,Radiusses,rheight,theight,pltIllu
     L = 0
     S1 = []
     S2 = []
+    Vx = []
+    Vy = []
+
+
 
     for i in range(len(Xkeys)-2):
-        print(Xkeys[i])
+        print('key:',Xkeys[i])
 
         w = groupsY[Xkeys[i]].index(max(groupsY[Xkeys[i]]))
         Wx = groupsX[Xkeys[i]][w]
@@ -1041,13 +1046,14 @@ def ITUMultipleCylinders(Xcoords,Ycoords,wavel,Radiusses,rheight,theight,pltIllu
             if e > maxe:
                 Xx = x
                 Xy = y
-            e = ((y - Zy)/(x-Zx))-((x-Zx)/(2*ae))
+
+            e = ((Zy - y)/(Zx-x))-((Zx-x)/(2*ae))
             if e < mine:
                 Yx = x
                 Yy = y
 
         alphw = (Xy-Wy)/(Xx-Wx)-(Xx-Wx)/(2*ae)
-        alphz = (Yy-Zy)/(Yx-Zx)-(Yx-Zx)/(2*ae)
+        alphz = (Zy-Yy)/(Zx-Yx)-(Zx-Yx)/(2*ae)
 
         alphe = (Zx - Wx)/ae
 
@@ -1076,9 +1082,12 @@ def ITUMultipleCylinders(Xcoords,Ycoords,wavel,Radiusses,rheight,theight,pltIllu
             hv = dwv*alphw + Wy+(dwv**2)/(2*ae)
 
         h = hv + (dwv*dvz)/(2*ae) - (Wy*dvz+Zy*dwv)/(Zx-Wx)
-        ip = Xcoords.tolist().index(Xx)-1
-        iq = Xcoords.tolist().index(Yx)+1
-
+        if isinstance(Xcoords,list):
+            ip = Xcoords.index(Xx)-1
+            iq = Xcoords.index(Yx)+1
+        else:
+            ip = Xcoords.tolist().index(Xx)-1
+            iq = Xcoords.tolist().index(Yx)+1
         ph = 0
         if ip == 0:
             ph = Ycoords[0] - theight
@@ -1096,19 +1105,72 @@ def ITUMultipleCylinders(Xcoords,Ycoords,wavel,Radiusses,rheight,theight,pltIllu
         dpq  = Xcoords[iq] - Xcoords[ip]
 
         t = (Xy-ph)/dpx + (Yy-qh)/dyq - dpq/ae
+        print('t:', t)
         print(dwv)
         print(dvz)
         v = h*math.sqrt(2/wavel*(1/(dwv)+1/(dvz)))
 
         R = (dpq/t)*(1-math.exp(-4*v))**3
-        print(R)
+
+        print('R: ',R)
 
         S1.append(dwv)
         S2.append(dvz)
+        Vx.append(Wx+dwv)
+        Vy.append(hv)
+        print(Wx)
 
-        L = L + ITUSingleRounded([Wx,Wx+dvw,Zx],[Wy,hv,Zy],wavel,R)
+        if R >0:
+            L = L + ITUSingleRounded([Wx,(Wx+dwv),Zx],[Wy,hv,Zy],wavel,R)
 
+    Vx.insert(0,Xcoords[0])
+    Vy.insert(0,Ycoords[0])
+    Vx.append(Xcoords[-1])
+    Vy.append(Ycoords[-1])
 
+    print(Vx)
+
+    for i in range(len(Vx)-1):
+        P = np.where(Xcoords > Vx[i])[0]
+        pi = P[0]
+        if pi+1<len(Ycoords)-1:
+            while Ycoords[pi]>Ycoords[pi+1]:
+                pi = pi+1
+
+        Q = np.where(Xcoords < Vx[i+1])[0]
+        qi = Q[-1]
+        while Ycoords[qi]>Ycoords[qi-1]:
+            qi = qi-1
+
+        if pi == qi:
+            Ls = 0
+        else:
+            m = ((Ycoords[qi] - Ycoords[pi])/(Xcoords[qi]-Xcoords[pi]))-((Xcoords[qi]-Xcoords[pi])/(2*ae))
+            b = Ycoords[qi] - Xcoords[qi]*m
+
+            minCf = 0
+            for j in range(pi+1,qi-1):
+                hz = m*Xcoords[j]+b - Ycoords[j]
+                dui = Xcoords[j]-Xcoords[pi]
+                div = Xcoords[qi]-Xcoords[j]
+                duv = Xcoords[qi]-Xcoords[pi]
+                F1 = math.sqrt(wavel*dui*div/duv)
+                Cf = hz/F1
+                if Cf < minCf:
+                    minCf = Cf
+
+                v = -Cf*math.sqrt(2)
+                Vals = special.fresnel(v)
+                Cv = Vals[1]
+                Sv = Vals[0]
+
+                Jv = -20*math.log10(math.sqrt((1-Cv-Sv)**2+(Cv-Sv)**2)/2)
+                L = L + Jv
+    
+    Pa = S1[0]*np.prod(S2)*(S1[0]+sum(S2))
+    Pb = S1[0]*S2[-1]*np.prod(S1+S2)
+    CN = (Pa/Pb)**0.5
+    L = L - CN
 
     if pltIllustration == 1:
         #plt.gca().set_aspect('equal', adjustable='box')
@@ -1116,7 +1178,7 @@ def ITUMultipleCylinders(Xcoords,Ycoords,wavel,Radiusses,rheight,theight,pltIllu
         plt.plot(stringX,stringY,'-')
         plt.show()
 
-
+    return L
 
 
 
@@ -1148,12 +1210,12 @@ def main():
     #theight = 50
 
     #start_time = time.time()
-    #xintersect, yintersect, Tdist, Theight, Rdist, Rheight = FresnelZoneClearance(distarr,heightarr,rheight,theight,wavel,plotZone = 1)
+    xintersect, yintersect, Tdist, Theight, Rdist, Rheight = FresnelZoneClearance(distarr,heightarr,rheight,theight,wavel,plotZone = 1)
     #end_time = time.time()
     #print('3 Time: ',end_time-start_time)
 
     #start_time = time.time()
-    #knifeX, knifeY, radiusses = KnifeEdges(xintersect, yintersect, wavel, distarr, heightarr, Rheight, Theight, 4, 1,0)
+    knifeX, knifeY, radiusses = KnifeEdges(xintersect, yintersect, wavel, distarr, heightarr, Rheight, Theight, 4, 1,0)
     #print(knifeX)
     #print(radiusses)
     #end_time = time.time()
@@ -1189,8 +1251,8 @@ def main():
     #print('Giovaneli t: :',L,' dB')
     heightarr[0] = theight + heightarr[0]
     heightarr[-1] = rheight + heightarr[-1]
-    ITUMultipleCylinders(distarr, heightarr,wavel,[0,0],rheight,theight,pltIllustration = 1)
-    #print([0,50,100,150,200,600,750,900])
+    L = ITUMultipleCylinders(distarr, heightarr,wavel,rheight,theight,pltIllustration = 1)
+    print('L',L)
 
 if __name__ == '__main__':
     main()
