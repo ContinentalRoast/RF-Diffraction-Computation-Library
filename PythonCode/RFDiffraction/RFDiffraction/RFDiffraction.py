@@ -28,6 +28,8 @@ import time
 from matplotlib.collections import PatchCollection
 from matplotlib import cm 
 
+import copy
+
 #
 def WaveLength(frequency):
     c = 300000000 #speed of light m/s
@@ -107,6 +109,7 @@ def FresnelZoneClearance(distarr,heightarr,rheight,theight,wavel, plotZone = 0):
             yintersect.append(ycoord)
 
     if plotZone == 1:
+        #plt.gca().set_aspect('equal', adjustable='box')
         plt.xlabel('Distance (m)')
         plt.ylabel('Height above sea level (m)')
         plt.plot(RadiusXValues2,RadiusYValues2,'k-')
@@ -599,8 +602,6 @@ def Deygout(Xcoords,Ycoords,wavel,pltIllustration = 0):
         plt.show()
     return L
 
-
-
 def Vogler(Xcoords,Ycoords,wavel): ####
     r = []
     #heights = []
@@ -903,23 +904,24 @@ def DeygoutRounded(Xcoords,Ycoords,wavel,Radiusses,pltIllustration = 0):
             return L
 
     L = DeygoutRoundedLoss(Xcoords,Ycoords,wavel,Radiusses)
-    plt.show() 
+    if pltIllustration == 1 :
+        plt.show() 
     return L
 
-def ITUMultipleCylinders(Xcoords,Ycoords,wavel,Radiusses,pltIllustration = 0): # takes terrain profile of fresnel zone intersection as input
-    print('ITU MultipleCylinders')
+def ITUMultipleCylinders(Xcoords,Ycoords,wavel,Radiusses,rheight,theight,pltIllustration = 0): # takes terrain profile of fresnel zone intersection as input
+    #print('ITU MultipleCylinders')
     k = 4/3
     ae = k * 6371
     stringX = [Xcoords[0]]
     stringY = [Ycoords[0]]
-    print('len:',len(Xcoords))
+    #print('len:',len(Xcoords))
     maxeindex = 0
     j = 0
     currentmaxeindex = 0
-    print(Xcoords)
-    print(Ycoords)
+    #print(Xcoords)
+    #print(Ycoords)
     while j == 0:
-        print(maxeindex)
+        #print(maxeindex)
         maxe = -100
         hs = Ycoords[currentmaxeindex]
         
@@ -930,30 +932,183 @@ def ITUMultipleCylinders(Xcoords,Ycoords,wavel,Radiusses,pltIllustration = 0): #
 
             e = ((hi - hs)/dsi)-(dsi/(2*ae))
             m = (Ycoords[i+1+currentmaxeindex]-Ycoords[currentmaxeindex])/(Xcoords[i+1+currentmaxeindex]-Xcoords[currentmaxeindex]) #???????
-            print(i+1+currentmaxeindex)
-            print('m ',m)
-            print('e ',e)
+            #print(i+1+currentmaxeindex)
+            #print('m ',m)
+            #print('e ',e)
             if e > maxe:
                 maxe = e
                 maxeindex = i+1+currentmaxeindex
-                print(i+1+currentmaxeindex)
+                #print(i+1+currentmaxeindex)
         currentmaxeindex = maxeindex
         stringX.append(Xcoords[maxeindex])
         stringY.append(Ycoords[maxeindex])
 
-        print(maxe)
-        print(maxeindex)
+        #print(maxe)
+        #print(maxeindex)
         if maxeindex == (len(Xcoords)-1):
             j = 1
+    print(stringX)
+
+    obstaclesX = {}
+    obstaclesY = {}
+    groupsX = {}
+    groupsY = {}
+    j = 0
+    for i in range(len(stringX)-3):
+        Xpoint = stringX[i+1]
+        if Xpoint + 250 > stringX[i+2]:
+            obstaclesX[j] = [stringX[i+1],stringX[i+2]]
+            obstaclesY[j] = [stringY[i+1],stringY[i+2]]
+            j = j+1
+        elif j > 0:
+            if stringX[i+1] not in obstaclesX[j-1]:
+                obstaclesX[j] = [stringX[i+1]]
+                obstaclesY[j] = [stringY[i+1]]
+                j = j+1
+        else:
+            obstaclesX[j] = [stringX[i+1]]
+            obstaclesY[j] = [stringY[i+1]]
+            j = j+1
+
+    print('obstaclesX')
+    print(obstaclesX)
+    #print(len(obstacles))
+    for i in range(len(obstaclesX)-1):
+        for j in range(i+1, (len(obstaclesX)-1)):
+            if obstaclesX[i][len(obstaclesX[i])-1] == obstaclesX[j][0]:
+                obstaclesX[i].append(obstaclesX[j][len(obstaclesX[j])-1])
+                obstaclesY[i].append(obstaclesY[j][len(obstaclesY[j])-1])
+    print('\n')
+    print(obstaclesX)
+    print('\n')
+    groupsX = copy.deepcopy(obstaclesX)
+    groupsY = copy.deepcopy(obstaclesY)
+
+    for i in range(len(obstaclesX)-1):
+        #for j in range(len(obstaclesX)-1):
+        if obstaclesX[i][len(obstaclesX[i])-1] == obstaclesX[i+1][len(obstaclesX[i+1])-1]:
+            if (i+1) in groupsX:
+                groupsX.pop(i+1)
+                groupsY.pop(i+1)
+
+    print(groupsX)
+    #print(groupsY)
+    fX = {}
+    fY = {}
+
+    groupsX[-1] = [Xcoords[0]]
+    groupsY[-1] = [Ycoords[0]]
+    groupsX[len(Xcoords)] = [Xcoords[-1]]
+    groupsY[len(Xcoords)] = [Ycoords[-1]]
+
+    groupsX = {k: v for k, v in sorted(groupsX.items(), key=lambda item: item[1])}
+    
+
+    print('\n')
+    print(groupsX)
+    print(groupsY)
+
+    Xkeys = list(groupsX)
+
+    L = 0
+    S1 = []
+    S2 = []
+
+    for i in range(len(Xkeys)-2):
+        print(Xkeys[i])
+
+        w = groupsY[Xkeys[i]].index(max(groupsY[Xkeys[i]]))
+        Wx = groupsX[Xkeys[i]][w]
+        Wy = groupsY[Xkeys[i]][w]
+
+        z = groupsY[Xkeys[i+2]].index(max(groupsY[Xkeys[i+2]]))
+        Zx = groupsX[Xkeys[i+2]][z]
+        Zy = groupsY[Xkeys[i+2]][z]
+
+        #print(w)
+        maxe = -100
+        mine = 100
+
+        Xx = 0
+        Xy = 0
+
+        Yx = 0
+        Yy = 0
+
+        for x, y in zip(groupsX[Xkeys[i+1]],groupsY[Xkeys[i+1]]):
+
+            e = ((y - Wy)/(x-Wx))-((x-Wx)/(2*ae))
+            if e > maxe:
+                Xx = x
+                Xy = y
+            e = ((y - Zy)/(x-Zx))-((x-Zx)/(2*ae))
+            if e < mine:
+                Yx = x
+                Yy = y
+
+        alphw = (Xy-Wy)/(Xx-Wx)-(Xx-Wx)/(2*ae)
+        alphz = (Yy-Zy)/(Yx-Zx)-(Yx-Zx)/(2*ae)
+
+        alphe = (Zx - Wx)/ae
+
+        Theta = alphw+alphz+alphe
+        dwv = 0
+        print(len(groupsX[Xkeys[i+1]]))
+        if len(groupsX[Xkeys[i+1]]) == 1:
+            dwv = Xx-Wx
+        elif (Theta*ae)>=(Yx-Xx):
+            dwv = ((alphz+alphe/2)*(Zx-Wx)+Zy-Wy)/Theta
+        elif (Theta*ae)<(Yx-Xx):
+            dwv = (Xx-Wx+Yx-Wx)/2
+        if Yx==Xx:  #
+            dwv = Xx - Wx#
+
+        dvz = Zx - Wx - dwv
+        if dvz+dwv != Zx-Wx:
+            print('error')
+            print(Theta*ae)
+            print(Yx-Xx)
+
+        hv = 0
+        if len(groupsX[Xkeys[i+1]]) == 1:
+            hv = Xy
+        elif len(groupsX[Xkeys[i+1]]) > 1:
+            hv = dwv*alphw + Wy+(dwv**2)/(2*ae)
+
+        h = hv + (dwv*dvz)/(2*ae) - (Wy*dvz+Zy*dwv)/(Zx-Wx)
+        ip = Xcoords.tolist().index(Xx)-1
+        iq = Xcoords.tolist().index(Yx)+1
+
+        ph = 0
+        if ip == 0:
+            ph = Ycoords[0] - theight
+        else:
+            ph = Ycoords[ip]
+
+        qh = 0
+        if iq == len(Xcoords)-1:
+            qh = Ycoords[-1] - rheight
+        else:
+            qh = Ycoords[iq]
+    
+        dpx = Xx - Xcoords[ip]
+        dyq = Xcoords[iq] -Yx
+        dpq  = Xcoords[iq] - Xcoords[ip]
+
+        t = (Xy-ph)/dpx + (Yy-qh)/dyq - dpq/ae
+        print(dwv)
+        print(dvz)
+        v = h*math.sqrt(2/wavel*(1/(dwv)+1/(dvz)))
+
+        R = (dpq/t)*(1-math.exp(-4*v))**3
+        print(R)
+
+        S1.append(dwv)
+        S2.append(dvz)
+
+        L = L + ITUSingleRounded([Wx,Wx+dvw,Zx],[Wy,hv,Zy],wavel,R)
 
 
-    obstacles = {}
-    for i in range(len(Xcoords)-2):
-        Xpoint = Xcoords[i+1]
-        if Xpoint + 250 > Xcoords[i+2]:
-            obstacles[i] = [Xcoords[i+1],Xcoords[i+2]]
-
-    print(obstacles)
 
     if pltIllustration == 1:
         #plt.gca().set_aspect('equal', adjustable='box')
@@ -961,14 +1116,18 @@ def ITUMultipleCylinders(Xcoords,Ycoords,wavel,Radiusses,pltIllustration = 0): #
         plt.plot(stringX,stringY,'-')
         plt.show()
 
+
+
+
+
 def main():
 
-    L =  ITUSingleRounded([0,14300,21500],[0,7,0],1,150)
-    print(L)
-    L =  ITUSingleRounded([0,7400,14300],[0,-12,0],1,400)
-    print(L)
-    L =  ITUSingleRounded([0,3700,7200],[0,-13,0],1,500)
-    print(L)
+    #L =  ITUSingleRounded([0,14300,21500],[0,7,0],1,150)
+    #print(L)
+    #L =  ITUSingleRounded([0,7400,14300],[0,-12,0],1,400)
+    #print(L)
+    #L =  ITUSingleRounded([0,3700,7200],[0,-13,0],1,500)
+    #print(L)
     intlength = 140000 #meter
     rheight = 50 #meter
     theight = 50 #meter
@@ -985,38 +1144,37 @@ def main():
     distarr, heightarr = TerrainDivide(data,colnames[0],colnames[1],intlength,1,1)
     #end_time = time.time()
     #print('2 Time: ',end_time-start_time)
-    rheight = 50
-    theight = 50
+    #rheight = 50
+    #theight = 50
 
     #start_time = time.time()
-    xintersect, yintersect, Tdist, Theight, Rdist, Rheight = FresnelZoneClearance(distarr,heightarr,rheight,theight,wavel,plotZone = 0)
+    #xintersect, yintersect, Tdist, Theight, Rdist, Rheight = FresnelZoneClearance(distarr,heightarr,rheight,theight,wavel,plotZone = 1)
     #end_time = time.time()
     #print('3 Time: ',end_time-start_time)
 
     #start_time = time.time()
-    knifeX, knifeY, radiusses = KnifeEdges(xintersect, yintersect, wavel, distarr, heightarr, Rheight, Theight, 4, 1,0)
-    print(knifeX)
-    print(radiusses)
+    #knifeX, knifeY, radiusses = KnifeEdges(xintersect, yintersect, wavel, distarr, heightarr, Rheight, Theight, 4, 1,0)
+    #print(knifeX)
+    #print(radiusses)
     #end_time = time.time()
     #print('4 Time: ',end_time-start_time)
 
 
 
-    ITUMultipleCylinders(knifeX, knifeY,wavel,radiusses,pltIllustration = 1)
+    #ITUMultipleCylinders(knifeX, knifeY,wavel,radiusses,pltIllustration = 1)
+    
+    
+    #L = Bullington(knifeX,knifeY,wavel,1)
+    #print('Bullington: :',L,' dB')
 
+    #L = EpsteinPeterson(knifeX,knifeY,wavel)
+    #print('EpsteinPeterson: :',L,' dB')
 
+    #L = DeygoutRounded(knifeX, knifeY,wavel,radiusses,pltIllustration = 1)
+    #print('Deygout Rounded: :',L,' dB')
 
-    L = Bullington(knifeX,knifeY,wavel,1)
-    print('Bullington: :',L,' dB')
-
-    L = EpsteinPeterson(knifeX,knifeY,wavel)
-    print('EpsteinPeterson: :',L,' dB')
-
-    L = DeygoutRounded(knifeX, knifeY,wavel,radiusses,pltIllustration = 1)
-    print('Deygout Rounded: :',L,' dB')
-
-    L = Deygout(knifeX,knifeY,wavel,1)
-    print('Deygout: :',L,' dB')
+    #L = Deygout(knifeX,knifeY,wavel,1)
+    #print('Deygout: :',L,' dB')
 
 
     #L = Deygout([0,7000,12000,22000,26000],[0,30,50,20,0],0.5,1)
@@ -1024,11 +1182,15 @@ def main():
     #L = EpsteinPeterson([0,7000,12000,22000,26000],[0,30,50,20,0],0.5)
     #print('EpsteinPeterson t: :',L,' dB')
 
-    L = Giovaneli(knifeX,knifeY,wavel)
-    print('Giovaneli: :',L,' dB')
+    #L = Giovaneli(knifeX,knifeY,wavel)
+    #print('Giovaneli: :',L,' dB')
 
     #L = Giovaneli([0,7000,12000,22000,26000],[0,30,50,20,0],0.5,1)
     #print('Giovaneli t: :',L,' dB')
+    heightarr[0] = theight + heightarr[0]
+    heightarr[-1] = rheight + heightarr[-1]
+    ITUMultipleCylinders(distarr, heightarr,wavel,[0,0],rheight,theight,pltIllustration = 1)
+    #print([0,50,100,150,200,600,750,900])
 
 if __name__ == '__main__':
     main()
