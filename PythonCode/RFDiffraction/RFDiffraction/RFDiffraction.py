@@ -30,6 +30,22 @@ from matplotlib import cm
 
 import copy
 
+
+def range_prod(lo,hi):
+    if lo+1 < hi:
+        mid = (hi+lo)//2
+        return range_prod(lo,mid) * range_prod(mid+1,hi)
+    if lo == hi:
+        return lo
+    return lo*hi
+
+def treefactorial(n):
+    if n < 2:
+        return 1
+    return range_prod(1,n)
+
+
+
 #
 def WaveLength(frequency):
     c = 300000000 #speed of light m/s
@@ -604,24 +620,28 @@ def Deygout(Xcoords,Ycoords,wavel,pltIllustration = 0):
     return L
 
 def Vogler(Xcoords,Ycoords,wavel): ####
+    Xcoords = np.array(Xcoords)/1000
+    Ycoords = np.array(Ycoords)/1000
     r = []
     #heights = []
     #Theight = Ycoords[0]
     #Rheight = Ycoords[-1]
     length = len(Xcoords)
     N = length-2
+    print(N)
     theta = []  #There are some possible knife edge angle events not covered by Vogler
     alpha = []
     beta = []
     k = 2*np.pi/wavel
-
+    CN = 0
+    ON = 0
     for i in range(length-1):
         r.append(Xcoords[i+1]-Xcoords[i])
 
     for i in range(length-2):
-        ang1 = np.arctan((Ycoords[i+1]-Ycoords[i])/(Xcoords[i+1]-Xcoords[i]))*180/np.pi
-        ang2 = np.arctan((Ycoords[i+2]-Ycoords[i+1])/(Xcoords[i+2]-Xcoords[i+1]))*180/np.pi
-        theta.append(ang1-ang2)
+        ang1 = np.arctan((Ycoords[i+1]-Ycoords[i])/(Xcoords[i+1]-Xcoords[i]))
+        ang2 = np.arctan((Ycoords[i+2]-Ycoords[i+1])/(Xcoords[i+2]-Xcoords[i+1]))
+        theta.append(abs(ang1-ang2))
 
     for i in range(length - 3):
         a = ((r[i]*r[i+2])/(r[i]+r[i+1])*(r[i+1]+r[i+2]))**(1/2)
@@ -630,16 +650,50 @@ def Vogler(Xcoords,Ycoords,wavel): ####
     for i in range(length - 2):
         b = theta[i]*((i*k*r[i]*r[i+1])/(2*(r[i]+r[i+1])))**(1/2)
         beta.append(b)
+    
+    rprod1 = Xcoords[-1] - Xcoords[0]
+    rprod2 = 1
+    if N==1:
+        CN = 1
+    elif N >= 2:
+        for i in range(len(r) - 2):
+            rprod1 = rprod1*r[i+1]
+        for i in range(len(r) - 1):
+            rprod2 = rprod2*(r[i]+r[i+1])
+        CN = (rprod1/rprod2)**(1/2)
+
+    for i in range(len(beta)):
+        ON = ON + beta[i]**2
+    print(theta)
+    print('alpha',len(alpha))
+    print(beta)
+
+    def integrand(x, n, B):
+        return (x-B)**n*math.exp(-x**2)
+
+    def C(NmL,j,k):
+        Csum =  0 
+        if NmL == N-1:
+            Csum = treefactorial(k)*alpha[NmL-1]**(j)*I(k,beta[NmL-1])*I(j,beta[N])
+        else:
+            for i in range(j+1):
+                Csum = Csum + treefactorial(k-i)/treefactorial(j-i)*alpha[NmL-1]**(j-i)*I(k-i,beta[NmL-1])*C(NmL,i,j)
+
+        return Csum
+
+    def I(n,B):
+        return (2/math.pi**0.5)*quad(integrand, B, math.inf, args=(n,B))[0]/treefactorial(n)
+    
+    ImSum = 0
+    m = 20
+    m0 = m
+    Im =    ImSum + alpha[0]**(m0-0)*I(m0-0,beta[1])*C(2,0,m0)
+    #for m1 in range(m+1):
+        #ImSum = ImSum + alpha[0]**(m0-m1)*I(m0-m1,beta[1])*C(2,m1,m0)
+
+    print(Im)
 
 
-    def integrand(x):
-        output = np.exp(-(x)**2.0)
-        return output
-
-    g = quad(integrand1,20,np.inf)
-    print(g)
-
-    jj = nsum(lambda x: exp(-x**2), [-inf, inf])
 
 def DeltaBullingtonA(Xcoords,Ycoords,wavel):
     #print('Length X:',len(Xcoords))
@@ -1180,7 +1234,20 @@ def ITUMultipleCylinders(Xcoords,Ycoords,wavel,rheight,theight,pltIllustration =
 
     return L
 
+def DiffractionControl(IntervalLength,csvFilePath,TransmitterHeight,ReceiverHeight,Frequency,KnifeEdgeMethod=0,RoundedObstacleMethod=0,TwoObstacleMethod=0, PlotFunc=0):
 
+    wavel = WaveLength(Frequency)
+    data, colnames = GetTerrain(csvFilePath)
+
+    #Loop start
+    distarr, heightarr = TerrainDivide(data,colnames[0],colnames[1],IntervalLength,1,0)
+
+    xintersect, yintersect, Tdist, Theight, Rdist, Rheight = FresnelZoneClearance(distarr,heightarr,ReceiverHeight,TransmitterHeight,wavel,plotZone = PlotFunc)
+
+    knifeX, knifeY, radiusses = KnifeEdges(xintersect, yintersect, wavel, distarr, heightarr, Rheight, Theight, 4, 1, PlotFunc)
+
+
+    Vogler(knifeX,knifeY,wavel)
 
 def main():
 
@@ -1198,19 +1265,19 @@ def main():
     wavel = WaveLength(f)
 
     #start_time = time.time()
-    data, colnames = GetTerrain("C:/Users/marko/Desktop/FYP/book4.csv")
+    data, colnames = GetTerrain("C:/Users/marko/Desktop/FYP/book2.csv")
     #end_time = time.time()
     #print('1 Time: ',end_time-start_time)
 
     #start_time = time.time()
-    distarr, heightarr = TerrainDivide(data,colnames[0],colnames[1],intlength,1,1)
+    distarr, heightarr = TerrainDivide(data,colnames[0],colnames[1],intlength,1,0)
     #end_time = time.time()
     #print('2 Time: ',end_time-start_time)
     #rheight = 50
     #theight = 50
 
     #start_time = time.time()
-    xintersect, yintersect, Tdist, Theight, Rdist, Rheight = FresnelZoneClearance(distarr,heightarr,rheight,theight,wavel,plotZone = 1)
+    xintersect, yintersect, Tdist, Theight, Rdist, Rheight = FresnelZoneClearance(distarr,heightarr,rheight,theight,wavel,plotZone = 0)
     #end_time = time.time()
     #print('3 Time: ',end_time-start_time)
 
@@ -1221,6 +1288,7 @@ def main():
     #end_time = time.time()
     #print('4 Time: ',end_time-start_time)
 
+    Vogler(knifeX,knifeY,wavel)
 
 
     #ITUMultipleCylinders(knifeX, knifeY,wavel,radiusses,pltIllustration = 1)
@@ -1249,10 +1317,10 @@ def main():
 
     #L = Giovaneli([0,7000,12000,22000,26000],[0,30,50,20,0],0.5,1)
     #print('Giovaneli t: :',L,' dB')
-    heightarr[0] = theight + heightarr[0]
-    heightarr[-1] = rheight + heightarr[-1]
-    L = ITUMultipleCylinders(distarr, heightarr,wavel,rheight,theight,pltIllustration = 1)
-    print('L',L)
+    #heightarr[0] = theight + heightarr[0]
+    #heightarr[-1] = rheight + heightarr[-1]
+    #L = ITUMultipleCylinders(distarr, heightarr,wavel,rheight,theight,pltIllustration = 1)
+    #print('L',L)
 
 if __name__ == '__main__':
     main()
