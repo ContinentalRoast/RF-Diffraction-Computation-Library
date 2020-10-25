@@ -1,14 +1,12 @@
 import csv
-import os
 import math
-#from numpy import genfromtxt
+
 from tkinter import filedialog
+
 import pandas as pd
 import numpy as np
 from pandas import read_csv
-import matplotlib
 
-#from sympy import Ellipse,  Rational
 import matplotlib.pyplot as plt
 import sympy as sp
 from scipy.integrate import quad
@@ -17,7 +15,6 @@ from scipy import special
 from mpmath import nsum
 from scipy.ndimage.filters import gaussian_filter1d
 from scipy.signal import find_peaks
-
 from scipy.signal import argrelextrema
 
 import seaborn as sns
@@ -29,6 +26,10 @@ from matplotlib.collections import PatchCollection
 from matplotlib import cm 
 
 import copy
+import sys
+
+import mpmath as mp
+
 
 
 def range_prod(lo,hi):
@@ -620,8 +621,12 @@ def Deygout(Xcoords,Ycoords,wavel,pltIllustration = 0):
     return L
 
 def Vogler(Xcoords,Ycoords,wavel): ####
+    k = 4/3
+    ae = k * 6371
     Xcoords = np.array(Xcoords)/1000
-    Ycoords = np.array(Ycoords)/1000
+    Ycoords = np.array(Ycoords)
+    for h in range(len(Ycoords)):
+        Ycoords[h] = Ycoords[h]-(Xcoords[h]-Xcoords[0])**2/(2*ae)
     r = []
     #heights = []
     #Theight = Ycoords[0]
@@ -665,34 +670,44 @@ def Vogler(Xcoords,Ycoords,wavel): ####
     for i in range(len(beta)):
         ON = ON + beta[i]**2
     print(theta)
-    print('alpha',len(alpha))
+    print(alpha)
     print(beta)
 
     def integrand(x, n, B):
-        return (x-B)**n*math.exp(-x**2)
+        return (x-B)**n*mp.exp(-x**2)
 
     def C(NmL,j,k):
         Csum =  0 
         if NmL == N-1:
-            Csum = treefactorial(k)*alpha[NmL-1]**(j)*I(k,beta[NmL-1])*I(j,beta[N])
+            Csum = treefactorial(k)*alpha[NmL-2]**(j)*I(k,beta[NmL-2])*I(j,beta[N-1])
         else:
             for i in range(j+1):
-                Csum = Csum + treefactorial(k-i)/treefactorial(j-i)*alpha[NmL-1]**(j-i)*I(k-i,beta[NmL-1])*C(NmL,i,j)
+                Csum = Csum + treefactorial(k-i)/treefactorial(j-i)*alpha[NmL-1]**(j-i)*I(k-i,beta[NmL-1])*C(NmL+1,i,j)
 
         return Csum
 
     def I(n,B):
-        return (2/math.pi**0.5)*quad(integrand, B, math.inf, args=(n,B))[0]/treefactorial(n)
+        Integrated = quad(integrand, B, math.inf, args=(n,B))
+        #print(Integrated)
+        return (2/math.pi**0.5)*Integrated[0]/treefactorial(n)
     
     ImSum = 0
-    m = 20
-    m0 = m
-    Im =    ImSum + alpha[0]**(m0-0)*I(m0-0,beta[1])*C(2,0,m0)
-    #for m1 in range(m+1):
-        #ImSum = ImSum + alpha[0]**(m0-m1)*I(m0-m1,beta[1])*C(2,m1,m0)
+    for m in range(200):
+        Im = 0
+        for m1 in range(m+1):
+            Im = Im + alpha[0]**(m-m1)*I(m-m1,beta[1])*C(2,m1,m)
+        Im = 2**m*Im
+        print(Im)
+        ImSum = ImSum + Im
+        #if Im < 10**(-50):
+            #break
 
-    print(Im)
+        print(ImSum)
+        print(m)
 
+    
+    A = (1/2**N)*CN*mp.exp(ON)*ImSum
+    print('A: ',A)
 
 
 def DeltaBullingtonA(Xcoords,Ycoords,wavel):
@@ -763,7 +778,7 @@ def DeltaBullingtonA(Xcoords,Ycoords,wavel):
 def DeltaBullingtonB(Xcoords,Ycoords,wavel):
     Lba = DeltaBullingtonA(Xcoords,Ycoords,wavel)
     print('Lba: ',Lba)
-    Lba9.append(Lba)
+    #Lba9.append(Lba)
     d = Xcoords[-1]-Xcoords[0]
     hts = Ycoords[0]
     hrs = Ycoords[-1]
@@ -812,9 +827,9 @@ def DeltaBullingtonB(Xcoords,Ycoords,wavel):
     h_aksent_ts = hts - hst
     h_aksent_rs = hrs - hsr
     print('hts aksent:',h_aksent_ts)
-    h_ts1.append(h_aksent_ts)
+    #h_ts1.append(h_aksent_ts)
     print('hrs aksent:',h_aksent_rs)
-    h_rs2.append(h_aksent_rs)
+    #h_rs2.append(h_aksent_rs)
 
     Xc = Xcoords
     #Yc = Ycoords
@@ -824,14 +839,14 @@ def DeltaBullingtonB(Xcoords,Ycoords,wavel):
     Yc[-1] = h_aksent_rs
     Lbs = DeltaBullingtonA(Xc,Yc,wavel)
     print('Lbs ',Lbs," dB")
-    Lbs10.append(Lbs)
+    #Lbs10.append(Lbs)
     Lsph = ITUSpericalEarthDiffraction(d,wavel,h_aksent_ts,h_aksent_rs)
 
     print('Lsph: ',Lsph)
-    Lsph11.append(Lsph)
+    #Lsph11.append(Lsph)
 
     L = Lba + (Lsph - Lbs)
-    L12.append(L)
+    #L12.append(L)
 
     return L
     
@@ -1258,10 +1273,10 @@ def main():
     #L =  ITUSingleRounded([0,3700,7200],[0,-13,0],1,500)
     #print(L)
     intlength = 140000 #meter
-    rheight = 50 #meter
-    theight = 50 #meter
+    rheight = 30 #meter
+    theight = 30 #meter
 
-    f = 50000000 #Hz
+    f = 1000000000 #Hz
     wavel = WaveLength(f)
 
     #start_time = time.time()
@@ -1270,41 +1285,46 @@ def main():
     #print('1 Time: ',end_time-start_time)
 
     #start_time = time.time()
-    distarr, heightarr = TerrainDivide(data,colnames[0],colnames[1],intlength,1,0)
+    distarr, heightarr = TerrainDivide(data,colnames[0],colnames[1],intlength,1,1)
     #end_time = time.time()
     #print('2 Time: ',end_time-start_time)
     #rheight = 50
     #theight = 50
 
     #start_time = time.time()
-    xintersect, yintersect, Tdist, Theight, Rdist, Rheight = FresnelZoneClearance(distarr,heightarr,rheight,theight,wavel,plotZone = 0)
+    xintersect, yintersect, Tdist, Theight, Rdist, Rheight = FresnelZoneClearance(distarr,heightarr,rheight,theight,wavel,plotZone = 1)
     #end_time = time.time()
     #print('3 Time: ',end_time-start_time)
 
     #start_time = time.time()
-    knifeX, knifeY, radiusses = KnifeEdges(xintersect, yintersect, wavel, distarr, heightarr, Rheight, Theight, 4, 1,0)
+    knifeX, knifeY, radiusses = KnifeEdges(xintersect, yintersect, wavel, distarr, heightarr, Rheight, Theight, 4, 1,1)
     #print(knifeX)
     #print(radiusses)
     #end_time = time.time()
     #print('4 Time: ',end_time-start_time)
+    heightarrN = copy.deepcopy(heightarr)
+    heightarrN[0] = heightarrN[0] + theight
+    heightarrN[-1] = heightarrN[-1] + rheight
+    L = DeltaBullingtonB(distarr/1000,heightarrN,wavel)
+    print(L)
 
-    Vogler(knifeX,knifeY,wavel)
+    #Vogler(knifeX,knifeY,wavel)
 
 
     #ITUMultipleCylinders(knifeX, knifeY,wavel,radiusses,pltIllustration = 1)
     
     
-    #L = Bullington(knifeX,knifeY,wavel,1)
-    #print('Bullington: :',L,' dB')
+    L = Bullington(knifeX,knifeY,wavel,1)
+    print('Bullington: :',L,' dB')
 
-    #L = EpsteinPeterson(knifeX,knifeY,wavel)
-    #print('EpsteinPeterson: :',L,' dB')
+    L = EpsteinPeterson(knifeX,knifeY,wavel)
+    print('EpsteinPeterson: :',L,' dB')
+    print(radiusses)
+    L = DeygoutRounded(knifeX, knifeY,wavel,radiusses,pltIllustration = 1)
+    print('Deygout Rounded: :',L,' dB')
 
-    #L = DeygoutRounded(knifeX, knifeY,wavel,radiusses,pltIllustration = 1)
-    #print('Deygout Rounded: :',L,' dB')
-
-    #L = Deygout(knifeX,knifeY,wavel,1)
-    #print('Deygout: :',L,' dB')
+    L = Deygout(knifeX,knifeY,wavel,1)
+    print('Deygout: :',L,' dB')
 
 
     #L = Deygout([0,7000,12000,22000,26000],[0,30,50,20,0],0.5,1)
@@ -1312,8 +1332,8 @@ def main():
     #L = EpsteinPeterson([0,7000,12000,22000,26000],[0,30,50,20,0],0.5)
     #print('EpsteinPeterson t: :',L,' dB')
 
-    #L = Giovaneli(knifeX,knifeY,wavel)
-    #print('Giovaneli: :',L,' dB')
+    L = Giovaneli(knifeX,knifeY,wavel)
+    print('Giovaneli: :',L,' dB')
 
     #L = Giovaneli([0,7000,12000,22000,26000],[0,30,50,20,0],0.5,1)
     #print('Giovaneli t: :',L,' dB')
