@@ -28,7 +28,6 @@ from matplotlib import cm
 import copy
 import sys
 
-import mpmath as mp
 
 
 
@@ -81,14 +80,13 @@ def TerrainDivide(data, colnamex, colnamey, intlength, iterationNum):
     return distarr, heightarr, pathlength
 
 #
-def FresnelZoneClearance(distarr,heightarr,rheight,theight,wavel, plotZone = 0):
+def FresnelZoneClearance(distarr,heightarr,rheight,theight,wavel, plotZone = 0,Searth = 0,ae = 8500000):#
 
     Tdist = distarr[0] 
     Theight = theight + heightarr[0]
     Rdist = distarr[len(distarr)-1]
     Rheight = rheight + heightarr[len(heightarr)-1]
-
-    m = (Rheight-Theight)/(Rdist-Tdist)
+    m = (Rheight-Theight)/(Rdist-Tdist)-((Rdist-Tdist)/(2*ae))*Searth
     b = Theight
     length = math.sqrt(Rdist**2+(Rheight-Theight)**2)
     rangle = np.arctan((Rheight-Theight)/Rdist)
@@ -116,7 +114,7 @@ def FresnelZoneClearance(distarr,heightarr,rheight,theight,wavel, plotZone = 0):
 
     xintersect = []
     yintersect = []
-    start_time = time.time()
+    #start_time = time.time()
     for xcoord, ycoord in zip(distarr,heightarr):
         index = np.where(RadiusXValues2 >= xcoord)
         pIndex = index[0][0]
@@ -127,8 +125,8 @@ def FresnelZoneClearance(distarr,heightarr,rheight,theight,wavel, plotZone = 0):
             yintersect.append(ycoord)
     
 
-    end_time = time.time()
-    print('1 Time: ',end_time-start_time)
+    #end_time = time.time()
+    #print('1 Time: ',end_time-start_time)
 
     #start_time = time.time()
     #xcoord = [(xcoord, ycoord) for xcoord, ycoord in zip(distarr,heightarr) if ycoord >= RadiusYValues2]
@@ -149,7 +147,7 @@ def FresnelZoneClearance(distarr,heightarr,rheight,theight,wavel, plotZone = 0):
 
     return xintersect, yintersect, Tdist, Theight, Rdist, Rheight
 
-##
+#
 def KnifeEdges(xintersect, yintersect, wavel, distarr, heightarr, Rheight, Theight, sensitivity, cylinders = 0, plotoutput = 0):
 
     if sensitivity == 0:
@@ -187,6 +185,7 @@ def KnifeEdges(xintersect, yintersect, wavel, distarr, heightarr, Rheight, Theig
     #-----------------------------------------------------------------------------------------------------------------------
 
     #Get cylinder radiusses-------------------------------------------------------------------------------------------------
+    radiusses = []
     if cylinders == 1:
         radiusses = []
         county = 0
@@ -237,14 +236,13 @@ def KnifeEdges(xintersect, yintersect, wavel, distarr, heightarr, Rheight, Theig
     knifeY.insert(0,Theight)
     return knifeX, knifeY, radiusses
 
-def ITUSpericalEarthDiffraction(d,wavel,h1,h2):
+def ITUSpericalEarthDiffraction(dm,wavel,h1,h2,ae = 8500000):
     L = 0
-    dm = d *1000
-    ae = 8500000
     b = 1
-    #print('d:',d)
-    d_los = math.sqrt(2*ae)*(h1**(1/2)+h2**(1/2))
-    #print('d_los:',d_los)
+
+    d_los = (2*ae)**(1/2)*(h1**(1/2)+h2**(1/2))
+
+
     if dm >= d_los/1000:
         L = ITUNLoS(dm,wavel,h1,h2,ae)
 
@@ -293,8 +291,16 @@ def ITUNLoS(d,wavel,h1,h2,ae):
 
     GY1 = 0
     GY2 = 0
+
+    if Y1 == 0:
+        Y1 = 0.01
+    if Y2 == 0:
+        Y2 = 0.01
+
     B1 = b*Y1
     B2 = b*Y2
+
+    
 
     if B1 > 2:
         GY1 = 17.6*(B1-1.1)**(1/2)-5*math.log10(B1-1.1)-8
@@ -308,17 +314,17 @@ def ITUNLoS(d,wavel,h1,h2,ae):
 
     L = -(FX + GY1 + GY2)
 
-    print('X: ',X)
+    #print('X: ',X)
     #X3.append(X)
-    print('Y1: ',Y1)
+    #print('Y1: ',Y1)
     #Y1_4.append(Y1)
-    print('Y2: ',Y2)
+    #print('Y2: ',Y2)
     #Y2_5.append(Y2)
-    print('FX: ',FX)
+    #print('FX: ',FX)
     #FX6.append(FX)
-    print('GY1: ',GY1)
+    ##print('GY1: ',GY1)
     #GY1_7.append(GY1)
-    print('GY2: ',GY2)
+    #print('GY2: ',GY2)
     #GY2_8.append(GY2)
 
    
@@ -326,20 +332,19 @@ def ITUNLoS(d,wavel,h1,h2,ae):
     return L
 
 #
-def ObstacleValues(Xcoords,Ycoords):
+def ObstacleValues(Xcoords,Ycoords,Searth = 0,ae = 8500000):
     distance1 = ((Xcoords[1]-Xcoords[0])**2+(Ycoords[1]-Ycoords[0])**2)**(1/2)
     distance2 = ((Xcoords[2]-Xcoords[1])**2+(Ycoords[2]-Ycoords[1])**2)**(1/2)
-
-    mLoS = (Ycoords[2]-Ycoords[0])/(Xcoords[2]-Xcoords[0])
+    mLoS = (Ycoords[2]-Ycoords[0])/(Xcoords[2]-Xcoords[0])-((Xcoords[2]-Xcoords[0])/(2*ae))*Searth
     bLoS = Ycoords[2] - Xcoords[2]*mLoS
     height = Ycoords[1]-(mLoS*Xcoords[1]+bLoS)
 
     return distance1,distance2,height
 
-#
-def FresnelKirchoff(Xcoords,Ycoords,wavel, meth = 0):
 
-    distance1,distance2,height = ObstacleValues(Xcoords,Ycoords)
+def FresnelKirchoff(Xcoords,Ycoords,wavel, meth = 0,Searth = 0,ae = 8500000):
+
+    distance1,distance2,height = ObstacleValues(Xcoords,Ycoords,Searth,ae)
     v = height*math.sqrt(2/wavel*(1/(distance1)+1/(distance2)))
     Cv = 0
     Sv = 0
@@ -363,6 +368,8 @@ def FresnelKirchoff(Xcoords,Ycoords,wavel, meth = 0):
     return Jv
 
 def ITUSingleRounded(Xcoords,Ycoords,wavel,radius):
+    if radius == 0:
+        radius = 0.01
     distance1,distance2,height = ObstacleValues(Xcoords,Ycoords)
     Jv = FresnelKirchoff(Xcoords,Ycoords,wavel)
     m = radius*((distance1+distance2)/(distance1*distance2))/(math.pi*radius/wavel)**(1/3)
@@ -374,9 +381,10 @@ def ITUSingleRounded(Xcoords,Ycoords,wavel,radius):
     if mn > 4:
         Tmn = -6-20*math.log10(mn) + 7.2*m**(1/2)-(2-17*n)*m+3.6*m**(3/2)-0.8*m**2
         return (Tmn + Jv)
-
+#check !!!!!!!!!!!!!
 def ITUTwoEdge(Xcoords,Ycoords,wavel): #how do you determine that an edge is predominant?
-
+    plt.plot(Xcoords,Ycoords)
+    plt.show()
     Tx = Xcoords[0]
     Ty = Ycoords[0]
     Rx = Xcoords[3]
@@ -406,12 +414,17 @@ def ITUTwoEdge(Xcoords,Ycoords,wavel): #how do you determine that an edge is pre
     c = Rx-Ob2x
 
     
-    if (ratio1-ratio2)**2 > 2: #This condition must be refined
+    if abs(ratio1-ratio2) < 5: #This condition must be refined
         L1 = FresnelKirchoff([Tx,Ob1x,Ob2x],[Ty,Ob1y,Ob2y],wavel)
         L2 = FresnelKirchoff([Ob1x,Ob2x,Ry],[Ob1y,Ob2y,Ry],wavel)
         Lc = 0
+        
         if (L1 > 15)&(L2>15):
             Lc = 10*math.log10(((a+b)*(b+c))/(b*(a+b+c)))
+
+        print(L1)
+        print(L2)
+        print(Lc)
 
         return (L1 + L2 + Lc)
     
@@ -419,10 +432,15 @@ def ITUTwoEdge(Xcoords,Ycoords,wavel): #how do you determine that an edge is pre
 
         L1 = FresnelKirchoff([Tx,Ob1x,Rx],[Ty,Ob1y,Ry],wavel)
         L2 = FresnelKirchoff([Ob1x,Ob2x,Rx],[Ob1y,Ob2y,Ry],wavel)
+
         p = (2/wavel*((a+b+c)/((b+c)*a)))**(1/2)*h1
         q = (2/wavel*((a+b+c)/((b+a)*c)))**(1/2)*h2
-        alpha = math.arctan((b*(a+b+c)/(a*c))**(1/2))
+        alpha = math.atan((b*(a+b+c)/(a*c))**(1/2))
         Tc = (12-20*math.log10(2/(1-(alpha/math.pi))))*(q/p)**(2*p)
+
+        print(L1)
+        print(L2)
+        print(Tc)
 
         return (L1+L2-Tc)
 
@@ -431,13 +449,18 @@ def ITUTwoEdge(Xcoords,Ycoords,wavel): #how do you determine that an edge is pre
 
         L1 = FresnelKirchoff([Tx,Ob2x,Rx],[Ty,Ob2y,Ry],wavel)
         L2 = FresnelKirchoff([Tx,Ob1x,Ob2x],[Ty,Ob1y,Ob2y],wavel)
+        
         p = (2/wavel*((a+b+c)/((b+c)*a)))**(1/2)*h1
         q = (2/wavel*((a+b+c)/((b+a)*c)))**(1/2)*h2
-        alpha = math.arctan((b*(a+b+c)/(a*c))**(1/2))
+        alpha = math.atan((b*(a+b+c)/(a*c))**(1/2))
         Tc = (12-20*math.log10(2/(1-(alpha/math.pi))))*(q/p)**(2*p)
 
-        return (L1+L2-Tc)
+        print(L1)
+        print(L2)
+        print(Tc)
 
+        return (L1+L2-Tc)
+#
 def ITUTwoRounded(Xcoords,Ycoords,radii,wavel): 
 
     Tx = Xcoords[0]
@@ -484,7 +507,7 @@ def ITUTwoRounded(Xcoords,Ycoords,radii,wavel):
         L2 = ITUSingleRounded([Ob1x,Ob2x,Rx],[Ob1y,Ob2y,Ry],wavel,radii[1])
         p = (2/wavel*((a+b+c)/((b+c)*a)))**(1/2)*h1
         q = (2/wavel*((a+b+c)/((b+a)*c)))**(1/2)*h2
-        alpha = math.arctan((b*(a+b+c)/(a*c))**(1/2))
+        alpha = math.atan((b*(a+b+c)/(a*c))**(1/2))
         Tc = (12-20*math.log10(2/(1-(alpha/math.pi))))*(q/p)**(2*p)
 
         return (L1+L2-Tc)
@@ -496,13 +519,13 @@ def ITUTwoRounded(Xcoords,Ycoords,radii,wavel):
         L2 = ITUSingleRounded([Tx,Ob1x,Ob2x],[Ty,Ob1y,Ob2y],wavel,radii[1])
         p = (2/wavel*((a+b+c)/((b+c)*a)))**(1/2)*h1
         q = (2/wavel*((a+b+c)/((b+a)*c)))**(1/2)*h2
-        alpha = math.arctan((b*(a+b+c)/(a*c))**(1/2))
+        alpha = math.atan((b*(a+b+c)/(a*c))**(1/2))
         Tc = (12-20*math.log10(2/(1-(alpha/math.pi))))*(q/p)**(2*p)
 
         return (L1+L2-Tc)
 
 #
-def Bullington(Xcoords,Ycoords,wavel,pltIllustration = 0): ####
+def Bullington(Xcoords,Ycoords,wavel,pltIllustration = 0,Searth = 0,ae = 8500000): ####
     Tx = Xcoords[0]
     Ty = Ycoords[0]
     Rx = Xcoords[len(Xcoords)-1]
@@ -510,7 +533,7 @@ def Bullington(Xcoords,Ycoords,wavel,pltIllustration = 0): ####
 
     maxy = max(Ycoords[1:(len(Ycoords)-1)])
 
-    mTR = (Ry-Ty)/(Rx-Tx)
+    mTR = (Ry-Ty)/(Rx-Tx)-((Rx-Tx)/(2*ae))*Searth
     bTR = Ry - mTR*Rx
     ldy = 0
 
@@ -536,8 +559,8 @@ def Bullington(Xcoords,Ycoords,wavel,pltIllustration = 0): ####
     b2 = 0
 
     for xcoord, ycoord in zip(Xcoords[1:(len(Xcoords)-1)],Ycoords[1:(len(Ycoords)-1)]):     #!?
-        mtemp1 = (ycoord-Ty)/(xcoord-Tx)
-        mtemp2 = (Ry-ycoord)/(Rx-xcoord)
+        mtemp1 = (ycoord-Ty)/(xcoord-Tx)-((xcoord-Tx)/(2*ae))*Searth
+        mtemp2 = (Ry-ycoord)/(Rx-xcoord)-((Rx-xcoord)/(2*ae))*Searth
 
 
         #if ldy > 0:
@@ -588,26 +611,26 @@ def Bullington(Xcoords,Ycoords,wavel,pltIllustration = 0): ####
         plt.plot([Tx,Xpoint,Rx],[Ty,Ypoint,Ry],'-')
         plt.show()
 
-    return FresnelKirchoff([Tx,Xpoint,Rx],[Ty,Ypoint,Ry],wavel)
+    return FresnelKirchoff([Tx,Xpoint,Rx],[Ty,Ypoint,Ry],wavel,Searth,ae)
 
 #
-def EpsteinPeterson(Xcoords,Ycoords,wavel):
+def EpsteinPeterson(Xcoords,Ycoords,wavel,Searth = 0,ae = 8500000):
     NumEdges = len(Xcoords) - 2
     L = 0
 
     for i in range(NumEdges):
-        L = L + FresnelKirchoff([Xcoords[i],Xcoords[i+1],Xcoords[i+2]],[Ycoords[i],Ycoords[i+1],Ycoords[i+2]],wavel)
+        L = L + FresnelKirchoff([Xcoords[i],Xcoords[i+1],Xcoords[i+2]],[Ycoords[i],Ycoords[i+1],Ycoords[i+2]],wavel,Searth,ae)
 
     return L
 
 #
-def Deygout(Xcoords,Ycoords,wavel,pltIllustration = 0):
+def Deygout(Xcoords,Ycoords,wavel,pltIllustration = 0,Searth = 0,ae = 8500000):
         
     def DeygoutLoss(Xcoords,Ycoords,wavel): #Rekursie is stadig, improve
         NumEdges = len(Xcoords) - 2
         FresnelParams = []
         for i in range(NumEdges):
-            distance1, distance2, height = ObstacleValues([Xcoords[0],Xcoords[i+1],Xcoords[-1]],[Ycoords[0],Ycoords[i+1],Ycoords[-1]])
+            distance1, distance2, height = ObstacleValues([Xcoords[0],Xcoords[i+1],Xcoords[-1]],[Ycoords[0],Ycoords[i+1],Ycoords[-1]],Searth,ae)
             v = height*math.sqrt(2/wavel*(1/(distance1)+1/(distance2)))
             FresnelParams.append(v)
         if len(Xcoords) < 3:
@@ -615,7 +638,7 @@ def Deygout(Xcoords,Ycoords,wavel,pltIllustration = 0):
         else:
             MaxV = np.where(FresnelParams == np.amax(FresnelParams))
  
-            L = FresnelKirchoff([Xcoords[0],Xcoords[MaxV[0][0].astype(int)+1],Xcoords[-1]],[Ycoords[0],Ycoords[MaxV[0][0].astype(int)+1],Ycoords[-1]],wavel)
+            L = FresnelKirchoff([Xcoords[0],Xcoords[MaxV[0][0].astype(int)+1],Xcoords[-1]],[Ycoords[0],Ycoords[MaxV[0][0].astype(int)+1],Ycoords[-1]],wavel,Searth,ae)
             if pltIllustration == 1:
                 plt.plot([Xcoords[0],Xcoords[MaxV[0][0].astype(int)+1],Xcoords[-1]],[Ycoords[0],Ycoords[MaxV[0][0].astype(int)+1],Ycoords[-1]])
 
@@ -632,10 +655,9 @@ def Deygout(Xcoords,Ycoords,wavel,pltIllustration = 0):
         plt.ylabel('Height above sea level (m)')
         plt.show()
     return L
+#
+def Vogler(Xcoords,Ycoords,wavel,ae = 8500000): ####
 
-def Vogler(Xcoords,Ycoords,wavel): ####
-    k = 4/3
-    ae = k * 6371
     Xcoords = np.array(Xcoords)/1000
     Ycoords = np.array(Ycoords)
     for h in range(len(Ycoords)):
@@ -646,7 +668,7 @@ def Vogler(Xcoords,Ycoords,wavel): ####
     #Rheight = Ycoords[-1]
     length = len(Xcoords)
     N = length-2
-    print(N)
+    #print(N)
     theta = []  #There are some possible knife edge angle events not covered by Vogler
     alpha = []
     beta = []
@@ -682,9 +704,9 @@ def Vogler(Xcoords,Ycoords,wavel): ####
 
     for i in range(len(beta)):
         ON = ON + beta[i]**2
-    print(theta)
-    print(alpha)
-    print(beta)
+    #print(theta)
+    #print(alpha)
+    #print(beta)
 
     def integrand(x, n, B):
         return (x-B)**n*mp.exp(-x**2)
@@ -710,19 +732,21 @@ def Vogler(Xcoords,Ycoords,wavel): ####
         for m1 in range(m+1):
             Im = Im + alpha[0]**(m-m1)*I(m-m1,beta[1])*C(2,m1,m)
         Im = 2**m*Im
-        print(Im)
+        #print(Im)
         ImSum = ImSum + Im
         #if Im < 10**(-50):
             #break
 
-        print(ImSum)
-        print(m)
+        #print(ImSum)
+        #print(m)
 
     
     A = (1/2**N)*CN*mp.exp(ON)*ImSum
-    print('A: ',A)
+    #print('A: ',A)
 
+    return A
 
+#
 def DeltaBullingtonA(Xcoords,Ycoords,wavel):
     #print('Length X:',len(Xcoords))
     #k = 4/3
@@ -756,7 +780,7 @@ def DeltaBullingtonA(Xcoords,Ycoords,wavel):
             vmax = (hi+500*Ce*di*(d-di)-(hts*(d-di)+hrs*di)/d)*math.sqrt(((0.002*d)/(wavel*di*(d-di))))
             if vmax > Vmax:
                 Vmax = vmax
-        print('v max 1:',Vmax)
+        #print('v max 1:',Vmax)
         if Vmax > -0.78:
             Vals = special.fresnel(Vmax)
             Cv = Vals[1]
@@ -787,10 +811,11 @@ def DeltaBullingtonA(Xcoords,Ycoords,wavel):
 
     Lb = Luc + (1-math.exp(-Luc/6))*(10+0.02*d)
     return Lb
-
-def DeltaBullingtonB(Xcoords,Ycoords,wavel):
+#
+def DeltaBullington(Xcoords,Ycoords,wavel):
+    Xcoords = Xcoords/1000
     Lba = DeltaBullingtonA(Xcoords,Ycoords,wavel)
-    print('Lba: ',Lba)
+    #print('Lba: ',Lba)
     #Lba9.append(Lba)
     d = Xcoords[-1]-Xcoords[0]
     hts = Ycoords[0]
@@ -839,9 +864,9 @@ def DeltaBullingtonB(Xcoords,Ycoords,wavel):
 
     h_aksent_ts = hts - hst
     h_aksent_rs = hrs - hsr
-    print('hts aksent:',h_aksent_ts)
+    #print('hts aksent:',h_aksent_ts)
     #h_ts1.append(h_aksent_ts)
-    print('hrs aksent:',h_aksent_rs)
+    #print('hrs aksent:',h_aksent_rs)
     #h_rs2.append(h_aksent_rs)
 
     Xc = Xcoords
@@ -851,19 +876,19 @@ def DeltaBullingtonB(Xcoords,Ycoords,wavel):
     Yc[0] = h_aksent_ts
     Yc[-1] = h_aksent_rs
     Lbs = DeltaBullingtonA(Xc,Yc,wavel)
-    print('Lbs ',Lbs," dB")
+    #print('Lbs ',Lbs," dB")
     #Lbs10.append(Lbs)
-    Lsph = ITUSpericalEarthDiffraction(d,wavel,h_aksent_ts,h_aksent_rs)
+    Lsph = ITUSpericalEarthDiffraction(d*1000,wavel,h_aksent_ts,h_aksent_rs)
 
-    print('Lsph: ',Lsph)
+    #print('Lsph: ',Lsph)
     #Lsph11.append(Lsph)
 
     L = Lba + (Lsph - Lbs)
     #L12.append(L)
 
     return L
-    
-def Giovaneli(Xcoords,Ycoords,wavel, pltIllustration = 0):
+#
+def Giovaneli(Xcoords,Ycoords,wavel, pltIllustration = 0,Searth = 0,ae = 8500000):
     def GiovaneliLoss(Xcoords,Ycoords,wavel, pltIllustration = 0):
         if len(Xcoords) < 3:
             return 0
@@ -871,7 +896,7 @@ def Giovaneli(Xcoords,Ycoords,wavel, pltIllustration = 0):
         FresnelParams = []
 
         for i in range(NumEdges):
-            distance1, distance2, height = ObstacleValues([Xcoords[0],Xcoords[i+1],Xcoords[-1]],[Ycoords[0],Ycoords[i+1],Ycoords[-1]])
+            distance1, distance2, height = ObstacleValues([Xcoords[0],Xcoords[i+1],Xcoords[-1]],[Ycoords[0],Ycoords[i+1],Ycoords[-1]],Searth,ae)
             v = height*math.sqrt(2/wavel*(1/(distance1)+1/(distance2)))
             FresnelParams.append(v)
         
@@ -883,7 +908,7 @@ def Giovaneli(Xcoords,Ycoords,wavel, pltIllustration = 0):
         FresnelParams2 = []
         if len(Xcoords[0:(MaxV[0][0].astype(int)+2)])>2:
             for i in range(len(Xcoords[0:(MaxV[0][0].astype(int)+2)])-2):
-                distance1, distance2, height = ObstacleValues([Xcoords[0],Xcoords[i+1],Xcoords[MaxV[0][0].astype(int)+1]],[Ycoords[0],Ycoords[i+1],Ycoords[MaxV[0][0].astype(int)+1]])
+                distance1, distance2, height = ObstacleValues([Xcoords[0],Xcoords[i+1],Xcoords[MaxV[0][0].astype(int)+1]],[Ycoords[0],Ycoords[i+1],Ycoords[MaxV[0][0].astype(int)+1]],Searth,ae)
                 v = height*math.sqrt(2/wavel*(1/(distance1)+1/(distance2)))
                 FresnelParams1.append(v)
             MaxV1 = np.where(FresnelParams1 == np.amax(FresnelParams1))
@@ -895,7 +920,7 @@ def Giovaneli(Xcoords,Ycoords,wavel, pltIllustration = 0):
             tR1x = Xcoords[MaxV[0][0].astype(int)+1]
             tR1y = Ycoords[MaxV[0][0].astype(int)+1]
 
-            m1 = (tR1y-tO1y)/(tR1x-tO1x)
+            m1 = (tR1y-tO1y)/(tR1x-tO1x)-((tR1x-tO1x)/(2*ae))*Searth
             b1 = tR1y - tR1x*m1
             yT = m1*tT1x+b1
 
@@ -908,7 +933,7 @@ def Giovaneli(Xcoords,Ycoords,wavel, pltIllustration = 0):
         if len(Xcoords[(MaxV[0][0].astype(int)+1):len(Xcoords)])>2:
             for i in range(len(Xcoords[(MaxV[0][0].astype(int)+1):len(Xcoords)])-2):
                 #distance1, distance2, height = ObstacleValues([Xcoords[MaxV[0][0].astype(int)+1],Xcoords[i+MaxV[0][0].astype(int)+2],Xcoords[-1]],[Ycoords[MaxV[0][0].astype(int)+1],Ycoords[i+MaxV[0][0].astype(int)+2],Ycoords[-1]])
-                distance1, distance2, height = ObstacleValues([tempX[0],tempX[i+1],tempX[-1]],[tempY[0],tempY[i+1],tempY[-1]])
+                distance1, distance2, height = ObstacleValues([tempX[0],tempX[i+1],tempX[-1]],[tempY[0],tempY[i+1],tempY[-1]],Searth,ae)
                 v = height*math.sqrt(2/wavel*(1/(distance1)+1/(distance2)))
                 FresnelParams2.append(v)
             MaxV2 = np.where(FresnelParams2 == np.amax(FresnelParams2))
@@ -919,7 +944,7 @@ def Giovaneli(Xcoords,Ycoords,wavel, pltIllustration = 0):
             tO2x = Xcoords[MaxV2[0][0].astype(int)+2+MaxV[0][0].astype(int)]
             tO2y = Ycoords[MaxV2[0][0].astype(int)+2+MaxV[0][0].astype(int)]
             tR2x = tempX[-1]
-            m2 = (tO2y-tT2y)/(tO2x-tT2x)
+            m2 = (tO2y-tT2y)/(tO2x-tT2x)-((tO2x-tT2x)/(2*ae))*Searth
             b2 = tO2y - tO2x*m2
             yR = m2*tR2x+b2
         else:
@@ -933,7 +958,7 @@ def Giovaneli(Xcoords,Ycoords,wavel, pltIllustration = 0):
 
         if pltIllustration == 1:
             plt.plot([Xcoords[0],Xcoords[MaxV[0][0].astype(int)+1],Xcoords[-1]],[yT,Ycoords[MaxV[0][0].astype(int)+1],yR])
-        L = FresnelKirchoff([Xcoords[0],Xcoords[MaxV[0][0].astype(int)+1],Xcoords[-1]],[yT,Ycoords[MaxV[0][0].astype(int)+1],yR],wavel)
+        L = FresnelKirchoff([Xcoords[0],Xcoords[MaxV[0][0].astype(int)+1],Xcoords[-1]],[yT,Ycoords[MaxV[0][0].astype(int)+1],yR],wavel,Searth,ae)
 
         L = L + GiovaneliLoss(Xcoords[0:(MaxV[0][0].astype(int)+2)],Ycoords[0:(MaxV[0][0].astype(int)+2)],wavel,pltIllustration)
 
@@ -945,8 +970,8 @@ def Giovaneli(Xcoords,Ycoords,wavel, pltIllustration = 0):
         plt.ylabel('Height above sea level (m)')
         plt.show()
     return L
-
-def DeygoutRounded(Xcoords,Ycoords,wavel,Radiusses,pltIllustration = 0):
+#
+def DeygoutRounded(Xcoords,Ycoords,wavel,Radiusses,pltIllustration = 0,Searth = 0,ae = 8500000):
     if pltIllustration == 1 :
                
         fig, ax = plt.subplots() 
@@ -962,27 +987,29 @@ def DeygoutRounded(Xcoords,Ycoords,wavel,Radiusses,pltIllustration = 0):
         plt.ylabel('Height above sea level (m)  r')
         
     def DeygoutRoundedLoss(Xcoords,Ycoords,wavel,radiusses): #Rekursie is stadig, improve
-
+        L = 0
         NumEdges = len(Xcoords) - 2
         FresnelParams = []
 
         for i in range(NumEdges):
-            distance1, distance2, height = ObstacleValues([Xcoords[0],Xcoords[i+1],Xcoords[-1]],[Ycoords[0],Ycoords[i+1],Ycoords[-1]])
+            distance1, distance2, height = ObstacleValues([Xcoords[0],Xcoords[i+1],Xcoords[-1]],[Ycoords[0],Ycoords[i+1],Ycoords[-1]],Searth,ae)
             v = height*math.sqrt(2/wavel*(1/(distance1)+1/(distance2)))
             FresnelParams.append(v)
         if len(Xcoords) < 3:
             return 0
         else:
             MaxV = np.where(FresnelParams == np.amax(FresnelParams))
- 
-            L = ITUSingleRounded([Xcoords[0],Xcoords[MaxV[0][0].astype(int)+1],Xcoords[-1]],[Ycoords[0],Ycoords[MaxV[0][0].astype(int)+1],Ycoords[-1]],wavel,radiusses[MaxV[0][0].astype(int)])
+
+            L = L + ITUSingleRounded([Xcoords[0],Xcoords[MaxV[0][0].astype(int)+1],Xcoords[-1]],[Ycoords[0],Ycoords[MaxV[0][0].astype(int)+1],Ycoords[-1]],wavel,radiusses[MaxV[0][0].astype(int)])
 
             if pltIllustration == 1:
                 plt.plot([Xcoords[0],Xcoords[MaxV[0][0].astype(int)+1],Xcoords[-1]],[Ycoords[0],Ycoords[MaxV[0][0].astype(int)+1],Ycoords[-1]])
+            if len(Xcoords[0:(MaxV[0][0].astype(int)+2)]) >=3:
+                L = L + DeygoutRoundedLoss(Xcoords[0:(MaxV[0][0].astype(int)+2)],Ycoords[0:(MaxV[0][0].astype(int)+2)],wavel,radiusses[0:(MaxV[0][0].astype(int)+1)]) #Python is weird en die twede parameter moet een meer wees as die index wat jy soek
+            if len(Xcoords[(MaxV[0][0].astype(int)+1):len(Xcoords)]) >= 3:
+                print('N')
 
-            L = L + DeygoutRoundedLoss(Xcoords[0:(MaxV[0][0].astype(int)+2)],Ycoords[0:(MaxV[0][0].astype(int)+2)],wavel,radiusses[0:(MaxV[0][0].astype(int)+1)]) #Python is weird en die twede parameter moet een meer wees as die index wat jy soek
-
-            L = L + DeygoutRoundedLoss(Xcoords[(MaxV[0][0].astype(int)+1):len(Xcoords)],Ycoords[(MaxV[0][0].astype(int)+1):len(Xcoords)],wavel,radiusses[MaxV[0][0].astype(int):len(radiusses)])
+                L = L + DeygoutRoundedLoss(Xcoords[(MaxV[0][0].astype(int)+1):len(Xcoords)],Ycoords[(MaxV[0][0].astype(int)+1):len(Xcoords)],wavel,radiusses[MaxV[0][0].astype(int):len(radiusses)])
 
             return L
 
@@ -990,7 +1017,7 @@ def DeygoutRounded(Xcoords,Ycoords,wavel,Radiusses,pltIllustration = 0):
     if pltIllustration == 1 :
         plt.show() 
     return L
-
+#
 def ITUMultipleCylinders(Xcoords,Ycoords,wavel,rheight,theight,pltIllustration = 0): # takes terrain profile of fresnel zone intersection as input
     #print('ITU MultipleCylinders')
     k = 4/3
@@ -1014,7 +1041,7 @@ def ITUMultipleCylinders(Xcoords,Ycoords,wavel,rheight,theight,pltIllustration =
             dsi = Xcoords[i+1+currentmaxeindex] - Xcoords[currentmaxeindex]
 
             e = ((hi - hs)/dsi)-(dsi/(2*ae))
-            m = (Ycoords[i+1+currentmaxeindex]-Ycoords[currentmaxeindex])/(Xcoords[i+1+currentmaxeindex]-Xcoords[currentmaxeindex]) #???????
+            #e = (Ycoords[i+1+currentmaxeindex]-Ycoords[currentmaxeindex])/(Xcoords[i+1+currentmaxeindex]-Xcoords[currentmaxeindex]) #???????
             #print(i+1+currentmaxeindex)
             #print('m ',m)
             #print('e ',e)
@@ -1263,14 +1290,16 @@ def ITUMultipleCylinders(Xcoords,Ycoords,wavel,rheight,theight,pltIllustration =
 
     return L
 
-def DiffractionControl(IntervalLength,TransmitterHeight,ReceiverHeight,Frequency,roundEarth = 0,KnifeEdgeMethod=0,RoundedObstacleMethod=0,TwoObstacleMethod=0, PlotFunc=0):
+def DiffractionControl(IntervalLength,TransmitterHeight,ReceiverHeight,Frequency,roundEarth = 0,EarthDiffraction = 0,KnifeEdgeMethod=[0],RoundedObstacleMethod = [0],TwoObstacleMethod = [0],SingleObstacleMethod = [0], PlotFunc = [0]):
     
     #filename = filedialog.askopenfilename(initialdir =  "/", title = "Select A File", filetype =(("csv files","*.csv"),("all files","*.*")))
     wavel = WaveLength(Frequency)
     data, colnames = GetTerrain("C:/Users/marko/Desktop/FYP/book1.csv")
-
+    GetRadiusses = 0
+    if (RoundedObstacleMethod.count(0)) > len(RoundedObstacleMethod) or (1 in TwoObstacleMethod) or (1 in SingleObstacleMethod):
+        GetRadiusses = 1
     k = 4/3
-    ae = k * 6371
+    ae_ = k * 6371
     Diffraction_dict = {}
     #Loop start
     for colnum in range(0,len(colnames),2):
@@ -1281,47 +1310,141 @@ def DiffractionControl(IntervalLength,TransmitterHeight,ReceiverHeight,Frequency
         for i in range(iterations):
 
             distarr, heightarr, distance = TerrainDivide(data,colnames[colnum],colnames[colnum+1],IntervalLength,i+1)
+
             Diffraction_dict[colnames[colnum]].append(distance)
-            #distarrN = copy.deepcopy(distarr)
-            #heightarrN = copy.deepcopy(heightarr)
-            #rxintersect = 0
-            #ryintersect = 0
-            #rTdist = 0
-            #rTheight = 0
-            #rRdist = 0
-            #rRheight = 0
-            #if roundEarth == 1:
+
+            #if roundEarth == 0:
+            xintersect, yintersect, Tdist, Theight, Rdist, Rheight = FresnelZoneClearance(distarr,heightarr,ReceiverHeight,TransmitterHeight,wavel,plotZone = PlotFunc,Searth = roundEarth,ae = ae_)
+            knifeX, knifeY, radiusses = KnifeEdges(xintersect, yintersect, wavel, distarr, heightarr, Rheight, Theight, 4, GetRadiusses, PlotFunc)
+            #elif roundEarth == 1:
             #    for h in range(len(heightarrN)):
             #        heightarrN[h] = heightarrN[h]-(distarrN[h]-distarrN[0])**2/(2*ae)
 
+            #    xintersect, yintersect, Tdist, Theight, Rdist, Rheight = FresnelZoneClearance(distarr,heightarr,ReceiverHeight,TransmitterHeight,wavel,plotZone = PlotFunc)
+            #    knifeX, knifeY, radiusses = KnifeEdges(xintersect, yintersect, wavel, distarr, heightarr, Rheight, Theight, 0, GetRadiusses, PlotFunc)
 
-            #    rxintersect, ryintersect, rTdist, rTheight, rRdist, rRheight = FresnelZoneClearance(distarrN,heightarrN,ReceiverHeight,TransmitterHeight,wavel,plotZone = PlotFunc)
-            #    rknifeX, rknifeY, rradiusses = KnifeEdges(rxintersect, ryintersect, wavel, distarrN, heightarrN, rRheight, rTheight, 0, 1, PlotFunc)
+#-----------------------------------------------------------------------------------------------------------------------
 
-            xintersect, yintersect, Tdist, Theight, Rdist, Rheight = FresnelZoneClearance(distarr,heightarr,ReceiverHeight,TransmitterHeight,wavel,plotZone = PlotFunc)
-            knifeX, knifeY, radiusses = KnifeEdges(xintersect, yintersect, wavel, distarr, heightarr, Rheight, Theight, 4, 1, PlotFunc)
-            key = 'Bullington (dB) ' + str(int(colnum/2))
-            if key not in Diffraction_dict.keys():
-                Diffraction_dict['Bullington (dB) ' + str(int(colnum/2))] = [0]*iterations
+            if 0 in KnifeEdgeMethod:
+                L = DeltaBullington(distarr,heightarr,wavel)
+                key = 'Delta Bullington (dB) ' + str(int(colnum/2))
+                if key not in Diffraction_dict.keys():
+                    Diffraction_dict['Delta Bullington (dB) ' + str(int(colnum/2))] = [0]*iterations
 
-            L = Bullington(knifeX,knifeY,wavel,PlotFunc)
+                Diffraction_dict['Delta Bullington (dB) ' + str(int(colnum/2))][i] = L
 
-            Diffraction_dict['Bullington (dB) ' + str(int(colnum/2))][i] = L
 
-            #L = EpsteinPeterson(knifeX,knifeY,wavel)
-            #print('EpsteinPeterson: :',L,' dB')
-            #print(radiusses)
-            #L = DeygoutRounded(knifeX, knifeY,wavel,radiusses,pltIllustration = 1)
-            #print('Deygout Rounded: :',L,' dB')
+            if len(knifeX) >= 4:
 
-            #L = Deygout(rknifeX,rknifeY,wavel,1)
-            #print('Deygout: :',L,' dB')
+                if 1 in KnifeEdgeMethod:
+                    key = 'Bullington (dB) ' + str(int(colnum/2))
+                    if key not in Diffraction_dict.keys():
+                        Diffraction_dict['Bullington (dB) ' + str(int(colnum/2))] = [0]*iterations
 
-            #L = Giovaneli(rknifeX,rknifeY,wavel)
-            #print('Giovaneli: :',L,' dB')
+                    L = Bullington(knifeX,knifeY,wavel,PlotFunc,Searth = roundEarth,ae = ae_)
+                    Diffraction_dict['Bullington (dB) ' + str(int(colnum/2))][i] = L
 
-            #L = ITUMultipleCylinders(xintersect,yintersect,wavel,ReceiverHeight,TransmitterHeight,pltIllustration = 0)
-            #print(L)
+                if 2 in KnifeEdgeMethod:
+                    key = 'Epstein Peterson (dB) ' + str(int(colnum/2))
+                    if key not in Diffraction_dict.keys():
+                        Diffraction_dict['Epstein Peterson (dB) ' + str(int(colnum/2))] = [0]*iterations
+                    L = EpsteinPeterson(knifeX,knifeY,wavel,Searth = roundEarth,ae = ae_)
+
+                    Diffraction_dict['Epstein Peterson (dB) ' + str(int(colnum/2))][i] = L
+
+                if 3 in KnifeEdgeMethod:
+                    key = 'Deygout (dB) ' + str(int(colnum/2))
+                    if key not in Diffraction_dict.keys():
+                        Diffraction_dict['Deygout (dB) ' + str(int(colnum/2))] = [0]*iterations
+
+                    L = Deygout(knifeX,knifeY,wavel,PlotFunc,Searth = roundEarth,ae = ae_)
+                    Diffraction_dict['Deygout (dB) ' + str(int(colnum/2))][i] = L
+
+                if 4 in KnifeEdgeMethod:
+                    key = 'Giovaneli (dB) ' + str(int(colnum/2))
+                    if key not in Diffraction_dict.keys():
+                        Diffraction_dict['Giovaneli (dB) ' + str(int(colnum/2))] = [0]*iterations
+
+                    L = Giovaneli(knifeX,knifeY,wavel,PlotFunc,Searth = roundEarth,ae = ae_)
+                    Diffraction_dict['Giovaneli (dB) ' + str(int(colnum/2))][i] = L
+
+                if 5 in KnifeEdgeMethod:
+                    key = 'Vogler (dB) ' + str(int(colnum/2))
+                    if key not in Diffraction_dict.keys():
+                        Diffraction_dict['Vogler (dB) ' + str(int(colnum/2))] = [0]*iterations
+
+                    L = Vogler(knifeX,knifeY,wavel,ae = ae_)
+                    Diffraction_dict['Vogler (dB) ' + str(int(colnum/2))][i] = L
+
+#-----------------------------------------------------------------------------------------------------------------------
+            if len(knifeX) >= 4:
+                if 1 in RoundedObstacleMethod:
+                    key = 'Deygout Rounded (dB) ' + str(int(colnum/2))
+                    if key not in Diffraction_dict.keys():
+                        Diffraction_dict['Deygout Rounded (dB) ' + str(int(colnum/2))] = [0]*iterations
+
+                    L = DeygoutRounded(knifeX,knifeY,wavel,radiusses,PlotFunc,Searth = roundEarth,ae = ae_)
+                    Diffraction_dict['Deygout Rounded (dB) ' + str(int(colnum/2))][i] = L
+
+                if 2 in RoundedObstacleMethod:
+                    key = 'ITU Multiple Cylinders (dB) ' + str(int(colnum/2))
+                    if key not in Diffraction_dict.keys():
+                        Diffraction_dict['ITU Multiple Cylinders (dB) ' + str(int(colnum/2))] = [0]*iterations
+
+                    L = ITUMultipleCylinders(xintersect, yintersect,wavel,TransmitterHeight,ReceiverHeight,PlotFunc)
+                    Diffraction_dict['ITU Multiple Cylinders (dB) ' + str(int(colnum/2))][i] = L
+
+#-----------------------------------------------------------------------------------------------------------------------         
+            if len(knifeX) == 4:
+                if 1 in TwoObstacleMethod:
+                    key = 'ITU Two Edge (dB) ' + str(int(colnum/2))
+                    if key not in Diffraction_dict.keys():
+                        Diffraction_dict['ITU Two Edge (dB) ' + str(int(colnum/2))] = [0]*iterations
+
+                    L = ITUTwoEdge(knifeX,knifeY,wavel)
+                    Diffraction_dict['ITU Two Edge (dB) ' + str(int(colnum/2))][i] = L
+
+
+                if 2 in TwoObstacleMethod:
+                    key = 'ITU Two Rounded (dB) ' + str(int(colnum/2))
+                    if key not in Diffraction_dict.keys():
+                        Diffraction_dict['ITU Two Rounded (dB) ' + str(int(colnum/2))] = [0]*iterations
+
+                    L = ITUTwoRounded(knifeX,knifeY,radiusses,wavel)
+                    Diffraction_dict['ITU Two Rounded (dB) ' + str(int(colnum/2))][i] = L
+
+
+
+#-----------------------------------------------------------------------------------------------------------------------
+            if len(knifeX) == 3:
+                if 1 in SingleObstacleMethod:
+                    key = 'Fresnel-Kirchoff (dB) ' + str(int(colnum/2))
+                    if key not in Diffraction_dict.keys():
+                        Diffraction_dict['Fresnel-Kirchoff (dB) ' + str(int(colnum/2))] = [0]*iterations
+
+                    L = FresnelKirchoff(knifeX,knifeY,wavel,Searth = roundEarth,ae = ae_)
+                    Diffraction_dict['Fresnel-Kirchoff (dB) ' + str(int(colnum/2))][i] = L
+
+
+                if 2 in SingleObstacleMethod:
+                    key = 'ITU Single Rounded (dB) ' + str(int(colnum/2))
+                    if key not in Diffraction_dict.keys():
+                        Diffraction_dict['ITU Single Rounded (dB) ' + str(int(colnum/2))] = [0]*iterations
+
+                    L = ITUSingleRounded(knifeX,knifeY,wavel,radiusses[0])
+                    Diffraction_dict['ITU Single Rounded (dB) ' + str(int(colnum/2))][i] = L
+
+#-----------------------------------------------------------------------------------------------------------------------
+            if len(knifeX) == 2:
+                if EarthDiffraction == 1:
+                    key = 'ITU Sperical Earth Diffraction (dB) ' + str(int(colnum/2))
+                    if key not in Diffraction_dict.keys():
+                        Diffraction_dict['ITU Sperical Earth Diffraction (dB) ' + str(int(colnum/2))] = [0]*iterations
+
+                    L = ITUSpericalEarthDiffraction(distance,wavel,knifeY[0],knifeY[-1],ae = ae_)
+                    Diffraction_dict['ITU Sperical Earth Diffraction (dB) ' + str(int(colnum/2))][i] = L
+
+
     
     df = pd.DataFrame.from_dict(Diffraction_dict,orient='index').transpose()
     df.to_csv('dif_loss.csv',index=False)
@@ -1335,9 +1458,10 @@ def main():
     f = 1000000000 #Hz
     wavel = WaveLength(f)
 
-    DiffractionControl(intlength,theight,rheight,f,roundEarth = 1,KnifeEdgeMethod=0,RoundedObstacleMethod=0,TwoObstacleMethod=0, PlotFunc=0)
-
-
+    #DiffractionControl(intlength,theight,rheight,f,roundEarth = 1,KnifeEdgeMethod=0,RoundedObstacleMethod=0,TwoObstacleMethod=0, PlotFunc=0)
+    #DiffractionControl(intlength,theight,rheight,f)
+    DiffractionControl(intlength,theight,rheight,f,roundEarth = 0,KnifeEdgeMethod=[1,2,3,4],RoundedObstacleMethod = [1],TwoObstacleMethod = [1,2],SingleObstacleMethod = [0,1,2], PlotFunc = [0])
+    
 
 if __name__ == '__main__':
     main()
