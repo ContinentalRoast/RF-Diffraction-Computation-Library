@@ -252,8 +252,10 @@ def ITUSpericalEarthDiffraction(dm,wavel,h1,h2,ae = 8500000):
         b_ = 2*math.sqrt((m+1)/(3*m))*math.cos(math.pi/3+1/3*math.acos(3*c/2*math.sqrt(3*m/(m+1)**3)))
         d1 = dm/2*(1+b_)
         d2 = dm-d1
+        if d2 < 0:
+            d2 = 0
         h = ((h1-(d1**2)/(2*ae))*d2+(h2-(d2**2)/(2*ae))*d1)/dm
-        hreq = 0.552*math.sqrt(d1*d2*wavel/dm)
+        hreq = 0.552*(d1*d2*wavel/dm)**0.5
 
         if h > hreq:
             L = 0
@@ -343,8 +345,9 @@ def ObstacleValues(Xcoords,Ycoords,Searth = 0,ae = 8500000):
 
 
 def FresnelKirchoff(Xcoords,Ycoords,wavel, meth = 0,Searth = 0,ae = 8500000):
-
-    distance1,distance2,height = ObstacleValues(Xcoords,Ycoords,Searth,ae)
+    SE = Searth
+    AE = ae
+    distance1,distance2,height = ObstacleValues(Xcoords,Ycoords,Searth = SE,ae = AE)
     v = height*math.sqrt(2/wavel*(1/(distance1)+1/(distance2)))
     Cv = 0
     Sv = 0
@@ -383,8 +386,7 @@ def ITUSingleRounded(Xcoords,Ycoords,wavel,radius):
         return (Tmn + Jv)
 #check !!!!!!!!!!!!!
 def ITUTwoEdge(Xcoords,Ycoords,wavel): #how do you determine that an edge is predominant?
-    plt.plot(Xcoords,Ycoords)
-    plt.show()
+
     Tx = Xcoords[0]
     Ty = Ycoords[0]
     Rx = Xcoords[3]
@@ -610,8 +612,9 @@ def Bullington(Xcoords,Ycoords,wavel,pltIllustration = 0,Searth = 0,ae = 8500000
         plt.plot(Xcoords,Ycoords,'x')
         plt.plot([Tx,Xpoint,Rx],[Ty,Ypoint,Ry],'-')
         plt.show()
-
-    return FresnelKirchoff([Tx,Xpoint,Rx],[Ty,Ypoint,Ry],wavel,Searth,ae)
+    SE = Searth
+    AE = ae
+    return FresnelKirchoff([Tx,Xpoint,Rx],[Ty,Ypoint,Ry],wavel,Searth = SE,ae = AE)
 
 #
 def EpsteinPeterson(Xcoords,Ycoords,wavel,Searth = 0,ae = 8500000):
@@ -619,7 +622,7 @@ def EpsteinPeterson(Xcoords,Ycoords,wavel,Searth = 0,ae = 8500000):
     L = 0
 
     for i in range(NumEdges):
-        L = L + FresnelKirchoff([Xcoords[i],Xcoords[i+1],Xcoords[i+2]],[Ycoords[i],Ycoords[i+1],Ycoords[i+2]],wavel,Searth,ae)
+        L = L + FresnelKirchoff([Xcoords[i],Xcoords[i+1],Xcoords[i+2]],[Ycoords[i],Ycoords[i+1],Ycoords[i+2]],wavel,Searth=Searth,ae=ae)
 
     return L
 
@@ -630,7 +633,7 @@ def Deygout(Xcoords,Ycoords,wavel,pltIllustration = 0,Searth = 0,ae = 8500000):
         NumEdges = len(Xcoords) - 2
         FresnelParams = []
         for i in range(NumEdges):
-            distance1, distance2, height = ObstacleValues([Xcoords[0],Xcoords[i+1],Xcoords[-1]],[Ycoords[0],Ycoords[i+1],Ycoords[-1]],Searth,ae)
+            distance1, distance2, height = ObstacleValues([Xcoords[0],Xcoords[i+1],Xcoords[-1]],[Ycoords[0],Ycoords[i+1],Ycoords[-1]],Searth=Searth,ae=ae)
             v = height*math.sqrt(2/wavel*(1/(distance1)+1/(distance2)))
             FresnelParams.append(v)
         if len(Xcoords) < 3:
@@ -638,7 +641,7 @@ def Deygout(Xcoords,Ycoords,wavel,pltIllustration = 0,Searth = 0,ae = 8500000):
         else:
             MaxV = np.where(FresnelParams == np.amax(FresnelParams))
  
-            L = FresnelKirchoff([Xcoords[0],Xcoords[MaxV[0][0].astype(int)+1],Xcoords[-1]],[Ycoords[0],Ycoords[MaxV[0][0].astype(int)+1],Ycoords[-1]],wavel,Searth,ae)
+            L = FresnelKirchoff([Xcoords[0],Xcoords[MaxV[0][0].astype(int)+1],Xcoords[-1]],[Ycoords[0],Ycoords[MaxV[0][0].astype(int)+1],Ycoords[-1]],wavel,Searth=Searth,ae=ae)
             if pltIllustration == 1:
                 plt.plot([Xcoords[0],Xcoords[MaxV[0][0].astype(int)+1],Xcoords[-1]],[Ycoords[0],Ycoords[MaxV[0][0].astype(int)+1],Ycoords[-1]])
 
@@ -896,7 +899,7 @@ def Giovaneli(Xcoords,Ycoords,wavel, pltIllustration = 0,Searth = 0,ae = 8500000
         FresnelParams = []
 
         for i in range(NumEdges):
-            distance1, distance2, height = ObstacleValues([Xcoords[0],Xcoords[i+1],Xcoords[-1]],[Ycoords[0],Ycoords[i+1],Ycoords[-1]],Searth,ae)
+            distance1, distance2, height = ObstacleValues([Xcoords[0],Xcoords[i+1],Xcoords[-1]],[Ycoords[0],Ycoords[i+1],Ycoords[-1]],Searth=Searth,ae=ae)
             v = height*math.sqrt(2/wavel*(1/(distance1)+1/(distance2)))
             FresnelParams.append(v)
         
@@ -908,7 +911,7 @@ def Giovaneli(Xcoords,Ycoords,wavel, pltIllustration = 0,Searth = 0,ae = 8500000
         FresnelParams2 = []
         if len(Xcoords[0:(MaxV[0][0].astype(int)+2)])>2:
             for i in range(len(Xcoords[0:(MaxV[0][0].astype(int)+2)])-2):
-                distance1, distance2, height = ObstacleValues([Xcoords[0],Xcoords[i+1],Xcoords[MaxV[0][0].astype(int)+1]],[Ycoords[0],Ycoords[i+1],Ycoords[MaxV[0][0].astype(int)+1]],Searth,ae)
+                distance1, distance2, height = ObstacleValues([Xcoords[0],Xcoords[i+1],Xcoords[MaxV[0][0].astype(int)+1]],[Ycoords[0],Ycoords[i+1],Ycoords[MaxV[0][0].astype(int)+1]],Searth=Searth,ae=ae)
                 v = height*math.sqrt(2/wavel*(1/(distance1)+1/(distance2)))
                 FresnelParams1.append(v)
             MaxV1 = np.where(FresnelParams1 == np.amax(FresnelParams1))
@@ -933,7 +936,7 @@ def Giovaneli(Xcoords,Ycoords,wavel, pltIllustration = 0,Searth = 0,ae = 8500000
         if len(Xcoords[(MaxV[0][0].astype(int)+1):len(Xcoords)])>2:
             for i in range(len(Xcoords[(MaxV[0][0].astype(int)+1):len(Xcoords)])-2):
                 #distance1, distance2, height = ObstacleValues([Xcoords[MaxV[0][0].astype(int)+1],Xcoords[i+MaxV[0][0].astype(int)+2],Xcoords[-1]],[Ycoords[MaxV[0][0].astype(int)+1],Ycoords[i+MaxV[0][0].astype(int)+2],Ycoords[-1]])
-                distance1, distance2, height = ObstacleValues([tempX[0],tempX[i+1],tempX[-1]],[tempY[0],tempY[i+1],tempY[-1]],Searth,ae)
+                distance1, distance2, height = ObstacleValues([tempX[0],tempX[i+1],tempX[-1]],[tempY[0],tempY[i+1],tempY[-1]],Searth=Searth,ae=ae)
                 v = height*math.sqrt(2/wavel*(1/(distance1)+1/(distance2)))
                 FresnelParams2.append(v)
             MaxV2 = np.where(FresnelParams2 == np.amax(FresnelParams2))
@@ -958,7 +961,7 @@ def Giovaneli(Xcoords,Ycoords,wavel, pltIllustration = 0,Searth = 0,ae = 8500000
 
         if pltIllustration == 1:
             plt.plot([Xcoords[0],Xcoords[MaxV[0][0].astype(int)+1],Xcoords[-1]],[yT,Ycoords[MaxV[0][0].astype(int)+1],yR])
-        L = FresnelKirchoff([Xcoords[0],Xcoords[MaxV[0][0].astype(int)+1],Xcoords[-1]],[yT,Ycoords[MaxV[0][0].astype(int)+1],yR],wavel,Searth,ae)
+        L = FresnelKirchoff([Xcoords[0],Xcoords[MaxV[0][0].astype(int)+1],Xcoords[-1]],[yT,Ycoords[MaxV[0][0].astype(int)+1],yR],wavel,Searth=Searth,ae=ae)
 
         L = L + GiovaneliLoss(Xcoords[0:(MaxV[0][0].astype(int)+2)],Ycoords[0:(MaxV[0][0].astype(int)+2)],wavel,pltIllustration)
 
@@ -992,7 +995,7 @@ def DeygoutRounded(Xcoords,Ycoords,wavel,Radiusses,pltIllustration = 0,Searth = 
         FresnelParams = []
 
         for i in range(NumEdges):
-            distance1, distance2, height = ObstacleValues([Xcoords[0],Xcoords[i+1],Xcoords[-1]],[Ycoords[0],Ycoords[i+1],Ycoords[-1]],Searth,ae)
+            distance1, distance2, height = ObstacleValues([Xcoords[0],Xcoords[i+1],Xcoords[-1]],[Ycoords[0],Ycoords[i+1],Ycoords[-1]],Searth=Searth,ae=ae)
             v = height*math.sqrt(2/wavel*(1/(distance1)+1/(distance2)))
             FresnelParams.append(v)
         if len(Xcoords) < 3:
@@ -1294,7 +1297,7 @@ def DiffractionControl(IntervalLength,TransmitterHeight,ReceiverHeight,Frequency
     
     #filename = filedialog.askopenfilename(initialdir =  "/", title = "Select A File", filetype =(("csv files","*.csv"),("all files","*.*")))
     wavel = WaveLength(Frequency)
-    data, colnames = GetTerrain("C:/Users/marko/Desktop/FYP/book1.csv")
+    data, colnames = GetTerrain("C:/Users/marko/Desktop/FYP/book2.csv")
     GetRadiusses = 0
     if (RoundedObstacleMethod.count(0)) > len(RoundedObstacleMethod) or (1 in TwoObstacleMethod) or (1 in SingleObstacleMethod):
         GetRadiusses = 1
@@ -1326,7 +1329,10 @@ def DiffractionControl(IntervalLength,TransmitterHeight,ReceiverHeight,Frequency
 #-----------------------------------------------------------------------------------------------------------------------
 
             if 0 in KnifeEdgeMethod:
-                L = DeltaBullington(distarr,heightarr,wavel)
+                heightarrN = copy.deepcopy(heightarr)
+                heightarrN[0] = heightarrN[0] + TransmitterHeight
+                heightarrN[-1] = heightarrN[-1] + ReceiverHeight
+                L = DeltaBullington(distarr,heightarrN,wavel)
                 key = 'Delta Bullington (dB) ' + str(int(colnum/2))
                 if key not in Diffraction_dict.keys():
                     Diffraction_dict['Delta Bullington (dB) ' + str(int(colnum/2))] = [0]*iterations
@@ -1447,11 +1453,12 @@ def DiffractionControl(IntervalLength,TransmitterHeight,ReceiverHeight,Frequency
 
     
     df = pd.DataFrame.from_dict(Diffraction_dict,orient='index').transpose()
+    print(df)
     df.to_csv('dif_loss.csv',index=False)
 
 def main():
 
-    intlength = 20000 #meter
+    intlength = 2000 #meter
     rheight = 30 #meter
     theight = 30 #meter
 
@@ -1460,7 +1467,7 @@ def main():
 
     #DiffractionControl(intlength,theight,rheight,f,roundEarth = 1,KnifeEdgeMethod=0,RoundedObstacleMethod=0,TwoObstacleMethod=0, PlotFunc=0)
     #DiffractionControl(intlength,theight,rheight,f)
-    DiffractionControl(intlength,theight,rheight,f,roundEarth = 0,KnifeEdgeMethod=[1,2,3,4],RoundedObstacleMethod = [1],TwoObstacleMethod = [1,2],SingleObstacleMethod = [0,1,2], PlotFunc = [0])
+    DiffractionControl(intlength,theight,rheight,f,roundEarth = 0,KnifeEdgeMethod=[0],RoundedObstacleMethod = [0],TwoObstacleMethod = [0],SingleObstacleMethod = [0], PlotFunc = 0)
     
 
 if __name__ == '__main__':

@@ -1292,12 +1292,12 @@ def main():
     #theight = 50
 
     #start_time = time.time()
-    xintersect, yintersect, Tdist, Theight, Rdist, Rheight = FresnelZoneClearance(distarr,heightarr,rheight,theight,wavel,plotZone = 1)
+    #xintersect, yintersect, Tdist, Theight, Rdist, Rheight = FresnelZoneClearance(distarr,heightarr,rheight,theight,wavel,plotZone = 1)
     #end_time = time.time()
     #print('3 Time: ',end_time-start_time)
 
     #start_time = time.time()
-    knifeX, knifeY, radiusses = KnifeEdges(xintersect, yintersect, wavel, distarr, heightarr, Rheight, Theight, 4, 1,1)
+    #knifeX, knifeY, radiusses = KnifeEdges(xintersect, yintersect, wavel, distarr, heightarr, Rheight, Theight, 4, 1,1)
     #print(knifeX)
     #print(radiusses)
     #end_time = time.time()
@@ -1314,17 +1314,17 @@ def main():
     #ITUMultipleCylinders(knifeX, knifeY,wavel,radiusses,pltIllustration = 1)
     
     
-    L = Bullington(knifeX,knifeY,wavel,1)
-    print('Bullington: :',L,' dB')
+    #L = Bullington(knifeX,knifeY,wavel,1)
+    #print('Bullington: :',L,' dB')
 
-    L = EpsteinPeterson(knifeX,knifeY,wavel)
-    print('EpsteinPeterson: :',L,' dB')
-    print(radiusses)
-    L = DeygoutRounded(knifeX, knifeY,wavel,radiusses,pltIllustration = 1)
-    print('Deygout Rounded: :',L,' dB')
+    #L = EpsteinPeterson(knifeX,knifeY,wavel)
+    #print('EpsteinPeterson: :',L,' dB')
+    #print(radiusses)
+    #L = DeygoutRounded(knifeX, knifeY,wavel,radiusses,pltIllustration = 1)
+    #print('Deygout Rounded: :',L,' dB')
 
-    L = Deygout(knifeX,knifeY,wavel,1)
-    print('Deygout: :',L,' dB')
+    #L = Deygout(knifeX,knifeY,wavel,1)
+    #print('Deygout: :',L,' dB')
 
 
     #L = Deygout([0,7000,12000,22000,26000],[0,30,50,20,0],0.5,1)
@@ -1332,8 +1332,8 @@ def main():
     #L = EpsteinPeterson([0,7000,12000,22000,26000],[0,30,50,20,0],0.5)
     #print('EpsteinPeterson t: :',L,' dB')
 
-    L = Giovaneli(knifeX,knifeY,wavel)
-    print('Giovaneli: :',L,' dB')
+    #L = Giovaneli(knifeX,knifeY,wavel)
+    #print('Giovaneli: :',L,' dB')
 
     #L = Giovaneli([0,7000,12000,22000,26000],[0,30,50,20,0],0.5,1)
     #print('Giovaneli t: :',L,' dB')
