@@ -1297,7 +1297,7 @@ def DiffractionControl(IntervalLength,TransmitterHeight,ReceiverHeight,Frequency
     
     #filename = filedialog.askopenfilename(initialdir =  "/", title = "Select A File", filetype =(("csv files","*.csv"),("all files","*.*")))
     wavel = WaveLength(Frequency)
-    data, colnames = GetTerrain("C:/Users/marko/Desktop/FYP/book2.csv")
+    data, colnames = GetTerrain("C:/Users/marko/Desktop/FYP/book1.csv")
     GetRadiusses = 0
     if (RoundedObstacleMethod.count(0)) > len(RoundedObstacleMethod) or (1 in TwoObstacleMethod) or (1 in SingleObstacleMethod):
         GetRadiusses = 1
@@ -1467,7 +1467,7 @@ def main():
 
     #DiffractionControl(intlength,theight,rheight,f,roundEarth = 1,KnifeEdgeMethod=0,RoundedObstacleMethod=0,TwoObstacleMethod=0, PlotFunc=0)
     #DiffractionControl(intlength,theight,rheight,f)
-    DiffractionControl(intlength,theight,rheight,f,roundEarth = 0,KnifeEdgeMethod=[0],RoundedObstacleMethod = [0],TwoObstacleMethod = [0],SingleObstacleMethod = [0], PlotFunc = 0)
+    DiffractionControl(intlength,theight,rheight,f,roundEarth = 1,EarthDiffraction = 1,KnifeEdgeMethod=[0,1,2,3,4],RoundedObstacleMethod = [0,1],TwoObstacleMethod = [0,1,2],SingleObstacleMethod = [0,1,2], PlotFunc = 0)
     
 
 if __name__ == '__main__':
