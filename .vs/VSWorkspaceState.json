@@ -3,8 +3,9 @@
     "",
     "\\PythonCode",
     "\\PythonCode\\RFDiffraction",
-    "\\PythonCode\\RFDiffraction\\RFDiffraction"
+    "\\PythonCode\\RFDiffraction\\RFDiffraction",
+    "\\PythonCode\\RFDiffraction\\RFDiffraction\\__pycache__"
   ],
-  "SelectedNode": "\\PythonCode\\RFDiffraction\\RFDiffraction\\RFDiffraction.py",
+  "SelectedNode": "\\PythonCode\\RFDiffraction\\RFDiffraction\\Call.py",
   "PreviewInSolutionExplorer": false
 }

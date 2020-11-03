@@ -1293,7 +1293,7 @@ def ITUMultipleCylinders(Xcoords,Ycoords,wavel,rheight,theight,pltIllustration =
 
     return L
 
-def DiffractionControl(IntervalLength,TransmitterHeight,ReceiverHeight,Frequency,roundEarth = 0,EarthDiffraction = 0,KnifeEdgeMethod=[0],RoundedObstacleMethod = [0],TwoObstacleMethod = [0],SingleObstacleMethod = [0], PlotFunc = [0]):
+def DiffractionControl(IntervalLength,TransmitterHeight,ReceiverHeight,Frequency,kfactor = 4/3,roundEarth = 0,EarthDiffraction = 0,KnifeEdgeMethod=[0],RoundedObstacleMethod = [0],TwoObstacleMethod = [0],SingleObstacleMethod = [0], PlotFunc = [0]):
     
     #filename = filedialog.askopenfilename(initialdir =  "/", title = "Select A File", filetype =(("csv files","*.csv"),("all files","*.*")))
     wavel = WaveLength(Frequency)
@@ -1301,8 +1301,7 @@ def DiffractionControl(IntervalLength,TransmitterHeight,ReceiverHeight,Frequency
     GetRadiusses = 0
     if (RoundedObstacleMethod.count(0)) > len(RoundedObstacleMethod) or (1 in TwoObstacleMethod) or (1 in SingleObstacleMethod):
         GetRadiusses = 1
-    k = 4/3
-    ae_ = k * 6371
+    ae_ = kfactor * 6371
     Diffraction_dict = {}
     #Loop start
     for colnum in range(0,len(colnames),2):
