@@ -45,21 +45,28 @@ def treefactorial(n):
     return range_prod(1,n)
 
 
+#0.2
+def InputValidate():
+    print('validate')
 
-#
+#0.3
+def OutputValidate():
+    print('validate')
+
+#1.2
 def WaveLength(frequency):
     c = 300000000 #speed of light m/s
     wavel = c/frequency #wavelength or lambda
     return wavel
 
-#
+#0.4
 def GetTerrain(fname): 
 
     df = pd.read_csv(fname)
 
     return df, df.columns
 
-#
+#0.5
 def TerrainDivide(data, colnamex, colnamey, intlength, iterationNum): 
 
     pathlength = intlength/1000*iterationNum
@@ -79,7 +86,7 @@ def TerrainDivide(data, colnamex, colnamey, intlength, iterationNum):
 
     return distarr, heightarr, pathlength
 
-#
+#1.1
 def FresnelZoneClearance(distarr,heightarr,rheight,theight,wavel, plotZone = 0,Searth = 0,ae = 8500000):#
 
     Tdist = distarr[0] 
@@ -147,7 +154,7 @@ def FresnelZoneClearance(distarr,heightarr,rheight,theight,wavel, plotZone = 0,S
 
     return xintersect, yintersect, Tdist, Theight, Rdist, Rheight
 
-#
+#1.4
 def KnifeEdges(xintersect, yintersect, wavel, distarr, heightarr, Rheight, Theight, sensitivity, cylinders = 0, plotoutput = 0):
 
     if sensitivity == 0:
@@ -236,6 +243,7 @@ def KnifeEdges(xintersect, yintersect, wavel, distarr, heightarr, Rheight, Theig
     knifeY.insert(0,Theight)
     return knifeX, knifeY, radiusses
 
+#2.4
 def ITUSpericalEarthDiffraction(dm,wavel,h1,h2,ae = 8500000):
     L = 0
     b = 1
@@ -270,6 +278,7 @@ def ITUSpericalEarthDiffraction(dm,wavel,h1,h2,ae = 8500000):
 
     return L
 
+#2.3
 def ITUNLoS(d,wavel,h1,h2,ae):
 
     b = 1
@@ -333,7 +342,7 @@ def ITUNLoS(d,wavel,h1,h2,ae):
 
     return L
 
-#
+#1.3
 def ObstacleValues(Xcoords,Ycoords,Searth = 0,ae = 8500000):
     distance1 = ((Xcoords[1]-Xcoords[0])**2+(Ycoords[1]-Ycoords[0])**2)**(1/2)
     distance2 = ((Xcoords[2]-Xcoords[1])**2+(Ycoords[2]-Ycoords[1])**2)**(1/2)
@@ -343,7 +352,7 @@ def ObstacleValues(Xcoords,Ycoords,Searth = 0,ae = 8500000):
 
     return distance1,distance2,height
 
-
+#2.1
 def FresnelKirchoff(Xcoords,Ycoords,wavel, meth = 0,Searth = 0,ae = 8500000):
     SE = Searth
     AE = ae
@@ -370,6 +379,7 @@ def FresnelKirchoff(Xcoords,Ycoords,wavel, meth = 0,Searth = 0,ae = 8500000):
     Jv = -20*math.log10(math.sqrt((1-Cv-Sv)**2+(Cv-Sv)**2)/2)  #J(v) is the diffraction loss in dB
     return Jv
 
+#2.2
 def ITUSingleRounded(Xcoords,Ycoords,wavel,radius):
     if radius == 0:
         radius = 0.01
@@ -384,7 +394,8 @@ def ITUSingleRounded(Xcoords,Ycoords,wavel,radius):
     if mn > 4:
         Tmn = -6-20*math.log10(mn) + 7.2*m**(1/2)-(2-17*n)*m+3.6*m**(3/2)-0.8*m**2
         return (Tmn + Jv)
-#check !!!!!!!!!!!!!
+
+#2.5
 def ITUTwoEdge(Xcoords,Ycoords,wavel): #how do you determine that an edge is predominant?
 
     Tx = Xcoords[0]
@@ -462,7 +473,8 @@ def ITUTwoEdge(Xcoords,Ycoords,wavel): #how do you determine that an edge is pre
         print(Tc)
 
         return (L1+L2-Tc)
-#
+
+#2.6
 def ITUTwoRounded(Xcoords,Ycoords,radii,wavel): 
 
     Tx = Xcoords[0]
@@ -526,7 +538,7 @@ def ITUTwoRounded(Xcoords,Ycoords,radii,wavel):
 
         return (L1+L2-Tc)
 
-#
+#2.7
 def Bullington(Xcoords,Ycoords,wavel,pltIllustration = 0,Searth = 0,ae = 8500000): ####
     Tx = Xcoords[0]
     Ty = Ycoords[0]
@@ -616,7 +628,7 @@ def Bullington(Xcoords,Ycoords,wavel,pltIllustration = 0,Searth = 0,ae = 8500000
     AE = ae
     return FresnelKirchoff([Tx,Xpoint,Rx],[Ty,Ypoint,Ry],wavel,Searth = SE,ae = AE)
 
-#
+#2.8
 def EpsteinPeterson(Xcoords,Ycoords,wavel,Searth = 0,ae = 8500000):
     NumEdges = len(Xcoords) - 2
     L = 0
@@ -626,7 +638,7 @@ def EpsteinPeterson(Xcoords,Ycoords,wavel,Searth = 0,ae = 8500000):
 
     return L
 
-#
+#2.9
 def Deygout(Xcoords,Ycoords,wavel,pltIllustration = 0,Searth = 0,ae = 8500000):
         
     def DeygoutLoss(Xcoords,Ycoords,wavel): #Rekursie is stadig, improve
@@ -658,7 +670,8 @@ def Deygout(Xcoords,Ycoords,wavel,pltIllustration = 0,Searth = 0,ae = 8500000):
         plt.ylabel('Height above sea level (m)')
         plt.show()
     return L
-#
+
+#2.10
 def Vogler(Xcoords,Ycoords,wavel,ae = 8500000): ####
 
     Xcoords = np.array(Xcoords)/1000
@@ -749,7 +762,7 @@ def Vogler(Xcoords,Ycoords,wavel,ae = 8500000): ####
 
     return A
 
-#
+#2.12
 def DeltaBullingtonA(Xcoords,Ycoords,wavel):
     #print('Length X:',len(Xcoords))
     #k = 4/3
@@ -814,7 +827,8 @@ def DeltaBullingtonA(Xcoords,Ycoords,wavel):
 
     Lb = Luc + (1-math.exp(-Luc/6))*(10+0.02*d)
     return Lb
-#
+
+#2.12
 def DeltaBullington(Xcoords,Ycoords,wavel):
     Xcoords = Xcoords/1000
     Lba = DeltaBullingtonA(Xcoords,Ycoords,wavel)
@@ -890,7 +904,8 @@ def DeltaBullington(Xcoords,Ycoords,wavel):
     #L12.append(L)
 
     return L
-#
+
+#2.11
 def Giovaneli(Xcoords,Ycoords,wavel, pltIllustration = 0,Searth = 0,ae = 8500000):
     def GiovaneliLoss(Xcoords,Ycoords,wavel, pltIllustration = 0):
         if len(Xcoords) < 3:
@@ -973,7 +988,8 @@ def Giovaneli(Xcoords,Ycoords,wavel, pltIllustration = 0,Searth = 0,ae = 8500000
         plt.ylabel('Height above sea level (m)')
         plt.show()
     return L
-#
+
+#2.14
 def DeygoutRounded(Xcoords,Ycoords,wavel,Radiusses,pltIllustration = 0,Searth = 0,ae = 8500000):
     if pltIllustration == 1 :
                
@@ -1020,7 +1036,8 @@ def DeygoutRounded(Xcoords,Ycoords,wavel,Radiusses,pltIllustration = 0,Searth = 
     if pltIllustration == 1 :
         plt.show() 
     return L
-#
+
+#2.15
 def ITUMultipleCylinders(Xcoords,Ycoords,wavel,rheight,theight,pltIllustration = 0): # takes terrain profile of fresnel zone intersection as input
     #print('ITU MultipleCylinders')
     k = 4/3
@@ -1293,6 +1310,7 @@ def ITUMultipleCylinders(Xcoords,Ycoords,wavel,rheight,theight,pltIllustration =
 
     return L
 
+#0.1
 def DiffractionControl(IntervalLength,TransmitterHeight,ReceiverHeight,Frequency,kfactor = 4/3,roundEarth = 0,EarthDiffraction = 0,KnifeEdgeMethod=[0],RoundedObstacleMethod = [0],TwoObstacleMethod = [0],SingleObstacleMethod = [0], PlotFunc = [0]):
     
     #filename = filedialog.askopenfilename(initialdir =  "/", title = "Select A File", filetype =(("csv files","*.csv"),("all files","*.*")))
