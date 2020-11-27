@@ -28,6 +28,100 @@ from matplotlib import cm
 import copy
 import sys
 
+#2.10
+#def Vogler(Xcoords,Ycoords,wavel,re = 8500000): ####
+
+#    Xcoords = np.array(Xcoords)
+#    Ycoords = np.array(Ycoords)
+#    #for h in range(len(Ycoords)):
+#    #    Ycoords[h] = Ycoords[h]-(Xcoords[h]-Xcoords[0])**2/(2*re)
+#    r = []
+
+#    length = len(Xcoords)
+#    N = length-2
+
+#    theta = []  #There are some possible knife edge angle events not covered by Vogler
+#    alpha = []
+#    beta = []
+#    k = 2*np.pi/wavel
+#    CN = 0
+#    ON = 0
+#    for i in range(length-1):
+#        r.append(Xcoords[i+1]-Xcoords[i])
+
+#    for i in range(length-2):
+#        ang1 = math.atan((Ycoords[i+1]-Ycoords[i])/(Xcoords[i+1]-Xcoords[i]))
+#        ang2 = math.atan((Ycoords[i+2]-Ycoords[i+1])/(Xcoords[i+2]-Xcoords[i+1]))
+#        theta.append(ang1-ang2)
+
+#    print('Theta: ',theta)
+
+#    for i in range(length - 3):
+#        a = ((r[i]*r[i+2])/((r[i]+r[i+1])*(r[i+1]+r[i+2])))**(1/2)
+#        alpha.append(a)
+
+#    print('Alpha: ',alpha)
+
+#    for i in range(length - 2):
+#        b = theta[i]*((i*k*r[i]*r[i+1])/(2*(r[i]+r[i+1])))**(1/2)
+#        beta.append(b)
+
+#    print('Beta: ',beta)
+    
+#    rprod1 = Xcoords[-1] - Xcoords[0]
+#    rprod2 = 1
+#    if N==1:
+#        CN = 1
+#    elif N >= 2:
+#        for i in range(len(r) - 2):
+#            rprod1 = rprod1*r[i+1]
+#        for i in range(len(r) - 1):
+#            rprod2 = rprod2*(r[i]+r[i+1])
+#        CN = (rprod1/rprod2)**(1/2)
+
+#    for i in range(len(beta)):
+#        ON = ON + beta[i]**2
+
+
+#    def integrand(x, n, B):
+#        return (x-B)**n*mp.exp(-x**2)
+
+#    def C(NmL,j,k):
+#        Csum =  0 
+#        if NmL == N-1:
+#            Csum = treefactorial(k)*alpha[NmL-2]**(j)*I(k,beta[NmL-2])*I(j,beta[N-1])
+#        else:
+#            for i in range(j+1):
+#                Csum = Csum + treefactorial(k-i)/treefactorial(j-i)*alpha[NmL-1]**(j-i)*I(k-i,beta[NmL-1])*C(NmL+1,i,j)
+
+#        return Csum
+
+#    def I(n,B):
+#        Integrated = quad(integrand, B, math.inf, args=(n,B))
+#        return (2/math.pi**0.5)*Integrated[0]/treefactorial(n)
+    
+#    ImSum = 0
+#    for m in range(200):
+#        Im = 0
+#        for m1 in range(m+1):
+#            Im = Im + alpha[0]**(m-m1)*I(m-m1,beta[1])*C(2,m1,m)
+#        Im = 2**m*Im
+#        ImSum = ImSum + Im
+
+#    A = (1/2**N)*CN*mp.exp(ON)*ImSum
+
+#    return A
+
+def EpsteinPetersonRounded(Xcoords,Ycoords,Radiusses,wavel,Searth = 0,re = 8500000):
+    NumEdges = len(Xcoords) - 2
+    L = 0
+
+    for i in range(NumEdges):
+        Lt = ITUSingleRounded(Xcoords[i:i+3],Ycoords[i:i+3],wavel,Radiusses[i])
+        if Lt < 0:
+            Lt = 0
+        L = L + Lt
+    return L
 
 
 
