@@ -18,8 +18,8 @@ from scipy.ndimage.filters import gaussian_filter1d
 from scipy.signal import find_peaks
 from scipy.signal import argrelextrema
 
-#import seaborn as sns
-#sns.set()
+import seaborn as sns
+sns.set()
 
 import time
 
@@ -34,7 +34,38 @@ import sys
 
 #0.1
 def DiffractionControl(fname,IntervalLength,TransmitterHeight,ReceiverHeight,Frequency,kfactor = 4/3,roundEarth = 0,EarthDiffraction = 0,KnifeEdgeMethod=[0],RoundedObstacleMethod = [0],TwoObstacleMethod = [0],SingleObstacleMethod = [1], PlotFunc = 0):
-    
+    '''
+    fname: The file path of the csv file that contains one or more terrain profiles.
+    IntervalLength: The length of each interval along the propagation path that diffraction loss must be calculated. (m)
+    TransmitterHeight: This is the height of the transmitter above the terrain. (m)
+    ReceiverHeight: This is the height of the receiver above the terrain. (m)
+    Frequency: The frequency of the transmitted signal. (Hz)
+    kfactor: The factor used to determine the effective radius of Earth. Is taken as 4/3 when not provided.
+    roundEarth: If this variable is equal to 1 a round Earth approach is used when implementing certain diffraction computation methods.
+    EarthDiffraction: The diffraction due to the spherical shape of the Earth when there are no obstacles in the first Fresnel zone is only calculated if this parameter is assigned a value of one.
+    KnifeEdgeMethod: This array can contain any of the following values in order to use certain methods:
+                    •	0: Delta-Bullington method 
+                    •	1: Bullington method 
+                    •	2: Epstein-Peterson method 
+                    •	3: Deygout method 
+                    •	4: Giovaneli method
+
+    RoundedObstacleMethod: This array can contain any of the following values in order to use certain methods:
+                    •	Only 0: No rounded obstacle method is used.
+                    •	1: Deygout rounded
+                    •	2: ITU Multiple Cylinders
+
+    TwoObstacleMethod: This array can contain any of the following values in order to use certain methods:
+                    •	Only 0: No two-obstacle method is used.
+                    •	1: ITU Two Knife-Edge method 
+                    •	2: ITU Two Rounded Obstacle method
+
+    SingleObstacleMethod: This array can contain any of the following values in order to use certain methods:
+                    •	Only 0: No single knife-edge method is used when there is only one obstacle present in the propagation path.
+                    •	1: Fresnel-Kirchoff method 
+                    •	2: ITU Single Rounded Obstacle method 
+    PlotFunc: If this variable is assigned a value of one, all of the functions used with the capability to visualize the diffraction computation process will do so.
+    '''
     wavel = WaveLength(Frequency)
     data, colnames = GetTerrain(fname)
     validation = InputValidate(data)
@@ -140,7 +171,7 @@ def DiffractionControl(fname,IntervalLength,TransmitterHeight,ReceiverHeight,Fre
                     key = 'ITU Multiple Cylinders (dB) ' + str(int(colnum/2))
                     if key not in Diffraction_dict.keys():
                         Diffraction_dict['ITU Multiple Cylinders (dB) ' + str(int(colnum/2))] = [0]*iterations
-
+                    
                     L = ITUMultipleCylinders(xintersect, yintersect,wavel,TransmitterHeight,ReceiverHeight,re = re_, pltIllustration = PlotFunc)
                     L = OutputValidate(L)
                     Diffraction_dict['ITU Multiple Cylinders (dB) ' + str(int(colnum/2))][i] = L
@@ -210,6 +241,9 @@ def DiffractionControl(fname,IntervalLength,TransmitterHeight,ReceiverHeight,Fre
 
 #0.2
 def InputValidate(TerrainData):
+    '''
+    TerrainData: Terrain profiles in the form of a DataFrame 
+    '''
     colnames = TerrainData.columns
     if (len(colnames) % 2) != 0:
         return 0
@@ -221,13 +255,19 @@ def InputValidate(TerrainData):
 
 #0.3
 def OutputValidate(Loss):
+    '''
+    Loss: Diffraction loss. (dB)
+    '''
     if Loss < 0:
         return 0
     else:
         return Loss
 
 #0.4
-def GetTerrain(fname): 
+def GetTerrain(fname):
+    '''
+    fname: The file path of the csv file that contains one or more terrain profiles.
+    '''
 
     df = pd.read_csv(fname)
 
@@ -235,6 +275,13 @@ def GetTerrain(fname):
 
 #0.5
 def TerrainDivide(data, colnamex, colnamey, intlength, iterationNum): 
+    '''
+    data: All of the terrain profiles in the form of a DataFrame. 
+    colnamex: The key is used to select the correct column of values from the terrain profile data frame.
+    colnamey: The key is used to select the correct column of values from the terrain profile data frame.
+    intlength: The length of one interval along the propagation path.
+    iterationNum: This is used to determine the total distance of terrain profile that must be extracted. That is how many intervals along the path.  
+    '''
     pathlength = intlength/1000*iterationNum
 
     pathdata = data[[colnamex,colnamey]]
@@ -256,7 +303,16 @@ def TerrainDivide(data, colnamex, colnamey, intlength, iterationNum):
 
 #1.1
 def FresnelZoneClearance(distarr,heightarr,rheight,theight,wavel, plotZone = 0,Searth = 0,re = 8500000):#
-
+    ''' 
+    distarr: Distance values. (m)
+    heightarr: Mean height above sea level values. (m)
+    rheight: This is the height of the receiver above the terrain. (m)
+    theight: This is the height of the transmitter above the terrain. (m)
+    wavel: Wavelength of the signal. (m)
+    plotZone: If this variable is assigned a value of one the Freznel zone and terrain is visualised.
+    Searth: If this variable is equal to 1 a round Earth approach is used.
+    re: Equivalent Earth radius. (m)
+    '''
     Tdist = distarr[0] 
     Theight = theight + heightarr[0]
     Rdist = distarr[len(distarr)-1]
@@ -324,12 +380,21 @@ def FresnelZoneClearance(distarr,heightarr,rheight,theight,wavel, plotZone = 0,S
 
 #1.2
 def WaveLength(frequency):
+    '''
+    Frequency: The frequency of the transmitted signal. (Hz)
+    '''
     c = 300000000 #speed of light m/s
     wavel = c/frequency #wavelength or lambda
     return wavel
 
 #1.3
 def ObstacleValues(Xcoords,Ycoords,Searth = 0,re = 8500000):
+    '''
+    Xcoords: Distance values. (m)
+    Ycoords: Mean height above sea level values. (m)
+    Searth: If this variable is equal to 1 a round Earth approach is used.
+    re: Equivalent Earth radius. (m)
+    '''
     distance1 = ((Xcoords[1]-Xcoords[0])**2+(Ycoords[1]-Ycoords[0])**2)**(1/2)
     distance2 = ((Xcoords[2]-Xcoords[1])**2+(Ycoords[2]-Ycoords[1])**2)**(1/2)
     mLoS = (Ycoords[2]-Ycoords[0])/(Xcoords[2]-Xcoords[0])-((Xcoords[2]-Xcoords[0])/(2*re))*Searth
@@ -340,6 +405,23 @@ def ObstacleValues(Xcoords,Ycoords,Searth = 0,re = 8500000):
 
 #1.4
 def KnifeEdges(xintersect, yintersect, distarr, heightarr, Rheight, Theight, sensitivity, cylinders = 0, plotoutput = 0):
+    '''
+    xintersect: Distance values in first Fresnel zone. (m)
+    yintersect: Height values in first Fresnel zone.
+    distarr: Distance values. (m)
+    heightarr: Mean height above sea level values. (m)
+    Rheight: Receiver height above mean sea level (m)
+    Theight: Transmitter height above mean sea level (m)
+    sensitivity: The sensitivity of the Gaussian function parameter enables the user to adjust the degree of the filter. 
+                 Thus, for example a sensitivity value of one will in turn mean that a first order Gaussian filter will be implemented.
+    cylinders: This Boolean value has the following effect on computations depending on the value assigned:
+                •	0: Radiuses of obstacles are not calculated 
+                •	1: Radiuses of obstacles are calculated
+
+    plotoutput: This Boolean value has the following effect depending on the value assigned:
+                •	0: Output values are not visualised 
+                •	1: Radiuses and knife-edge values of the terrain is plotted.
+    '''
 
     if sensitivity == 0:
         ysmoothed = heightarr
@@ -431,6 +513,13 @@ def KnifeEdges(xintersect, yintersect, distarr, heightarr, Rheight, Theight, sen
 
 #2.1
 def FresnelKirchoff(Xcoords,Ycoords,wavel,distMeth = 0, meth = 0,Searth = 0,re = 8500000):
+    '''
+    Xcoords: Distance values. First and last value represents transmitter end receiver. (m)
+    Ycoords: Mean height above sea level values. First and last value represents transmitter end receiver. (m)
+    wavel: Wavelength of the signal. (m)
+    Searth: If this variable is equal to 1 a round Earth approach is used.
+    re: Equivalent Earth radius. (m)
+    '''
     SE = Searth
     AE = re
     distance1,distance2,height = ObstacleValues(Xcoords,Ycoords,Searth = SE,re = AE)
@@ -462,6 +551,12 @@ def FresnelKirchoff(Xcoords,Ycoords,wavel,distMeth = 0, meth = 0,Searth = 0,re =
 
 #2.2
 def ITUSingleRounded(Xcoords,Ycoords,wavel,radius):
+    '''
+    Xcoords: Distance values. First and last value represents transmitter end receiver. (m)
+    Ycoords: Mean height above sea level values. First and last value represents transmitter end receiver. (m)
+    wavel: Wavelength of the signal. (m)
+    radius: Radius of obstacle. (m)
+    '''
     if radius == 0:
         radius = 0.01
     distance1,distance2,height = ObstacleValues(Xcoords,Ycoords)
@@ -478,7 +573,13 @@ def ITUSingleRounded(Xcoords,Ycoords,wavel,radius):
 
 #2.3
 def ITUNLoS(d,wavel,h1,h2,re = 8500000):
-
+    '''
+    d: Path length. (m)
+    wavel: Wavelength of signal. (m)
+    h1: Transmitter height. (m)
+    h2: Receiver height. (m)
+    re: Equivalent Earth radius. (m)
+    '''
     b = 1
     f = 300000000/wavel/1000000
 
@@ -542,6 +643,13 @@ def ITUNLoS(d,wavel,h1,h2,re = 8500000):
 
 #2.4
 def ITUSpericalEarthDiffraction(dm,wavel,h1,h2,re = 8500000):
+    '''
+    dm: Path length. (m)
+    wavel: Wavelength of signal. (m)
+    h1: Transmitter height. (m)
+    h2: Receiver height. (m)
+    re: Equivalent Earth radius. (m)
+    '''
     L = 0
     b = 1
 
@@ -576,7 +684,12 @@ def ITUSpericalEarthDiffraction(dm,wavel,h1,h2,re = 8500000):
     return L
 
 #2.5
-def ITUTwoEdge(Xcoords,Ycoords,wavel): #how do you determine that an edge is predominant?
+def ITUTwoEdge(Xcoords,Ycoords,wavel):
+    '''
+    Xcoords: Distance values of knife-edges. First and last value represents transmitter end receiver. (m)
+    Ycoords: Mean height above sea level values of knife-edges. First and last value represents transmitter end receiver. (m)
+    wavel: Wavelength of the signal. (m)
+    '''
 
     Tx = Xcoords[0]
     Ty = Ycoords[0]
@@ -654,6 +767,12 @@ def ITUTwoEdge(Xcoords,Ycoords,wavel): #how do you determine that an edge is pre
 
 #2.6
 def ITUTwoRounded(Xcoords,Ycoords,radii,wavel): 
+    '''
+    Xcoords: Distance values of knife-edges. First and last value represents transmitter end receiver. (m)
+    Ycoords: Mean height above sea level values of knife-edges. First and last value represents transmitter end receiver. (m)
+    wavel: Wavelength of the signal. (m)
+    radii: Radiuses of obstacles. (m)
+    '''
 
     Tx = Xcoords[0]
     Ty = Ycoords[0]
@@ -714,7 +833,15 @@ def ITUTwoRounded(Xcoords,Ycoords,radii,wavel):
         return (L1+L2-Tc)
 
 #2.7
-def Bullington(Xcoords,Ycoords,wavel,pltIllustration = 0,Searth = 0,re = 8500000): ####
+def Bullington(Xcoords,Ycoords,wavel,pltIllustration = 0,Searth = 0,re = 8500000):
+    '''
+    Xcoords: Distance values of knife-edges. First and last value represents transmitter end receiver. (m)
+    Ycoords: Mean height above sea level values of knife-edges. First and last value represents transmitter end receiver. (m)
+    wavel: Wavelength of the signal. (m)
+    pltIllustration: If this variable is assigned a value of one the method is visualised.
+    Searth: If this variable is equal to 1 a round Earth approach is used.
+    re: Equivalent Earth radius. (m)
+    '''
     if len(Xcoords) < 3:
         return 0
     Tx = Xcoords[0]
@@ -789,6 +916,14 @@ def Bullington(Xcoords,Ycoords,wavel,pltIllustration = 0,Searth = 0,re = 8500000
 
 #2.8
 def EpsteinPeterson(Xcoords,Ycoords,wavel,pltIllustration = 0,Searth = 0,re = 8500000):
+    '''
+    Xcoords: Distance values of knife-edges. First and last value represents transmitter end receiver. (m)
+    Ycoords: Mean height above sea level values of knife-edges. First and last value represents transmitter end receiver. (m)
+    wavel: Wavelength of the signal. (m)
+    pltIllustration: If this variable is assigned a value of one the method is visualised.
+    Searth: If this variable is equal to 1 a round Earth approach is used.
+    re: Equivalent Earth radius. (m)
+    '''
     NumEdges = len(Xcoords) - 2
     L = 0
 
@@ -807,7 +942,14 @@ def EpsteinPeterson(Xcoords,Ycoords,wavel,pltIllustration = 0,Searth = 0,re = 85
 
 #2.9
 def Deygout(Xcoords,Ycoords,wavel,pltIllustration = 0,Searth = 0,re = 8500000):
-        
+    '''
+    Xcoords: Distance values of knife-edges. First and last value represents transmitter end receiver. (m)
+    Ycoords: Mean height above sea level values of knife-edges. First and last value represents transmitter end receiver. (m)
+    wavel: Wavelength of the signal. (m)
+    pltIllustration: If this variable is assigned a value of one the method is visualised.
+    Searth: If this variable is equal to 1 a round Earth approach is used.
+    re: Equivalent Earth radius. (m)
+    '''
     def DeygoutLoss(Xcoords,Ycoords,wavel): #Rekursie is stadig, improve
         NumEdges = len(Xcoords) - 2
         FresnelParams = []
@@ -846,6 +988,14 @@ def Deygout(Xcoords,Ycoords,wavel,pltIllustration = 0,Searth = 0,re = 8500000):
 
 #2.10
 def Giovaneli(Xcoords,Ycoords,wavel, pltIllustration = 0,Searth = 0,re = 8500000):
+    '''
+    Xcoords: Distance values of knife-edges. First and last value represents transmitter end receiver. (m)
+    Ycoords: Mean height above sea level values of knife-edges. First and last value represents transmitter end receiver. (m)
+    wavel: Wavelength of the signal. (m)
+    pltIllustration: If this variable is assigned a value of one the method is visualised.
+    Searth: If this variable is equal to 1 a round Earth approach is used.
+    re: Equivalent Earth radius. (m)
+    '''
     def GiovaneliLoss(Xcoords,Ycoords,wavel, pltIllustration = 0):
         if len(Xcoords) < 3:
             return 0
@@ -931,6 +1081,12 @@ def Giovaneli(Xcoords,Ycoords,wavel, pltIllustration = 0,Searth = 0,re = 8500000
 
 #2.11.1
 def DeltaBullingtonA(Xcoords,Ycoords,wavel,re=8500):
+    '''
+    Xcoords: Distance values. First and last value represents transmitter end receiver. (km)
+    Ycoords: Mean height above sea level values. First and last value represents transmitter end receiver. (m)
+    wavel: Wavelength of the signal. (m)
+    re: Equivalent Earth radius. (km)
+    '''
 
     Ce = 1/re
     Stim = -100
@@ -994,6 +1150,12 @@ def DeltaBullingtonA(Xcoords,Ycoords,wavel,re=8500):
 
 #2.11.0
 def DeltaBullington(Xcoords,Ycoords,wavel,re=8500000):
+    '''
+    Xcoords: Distance values. First and last value represents transmitter end receiver. (m)
+    Ycoords: Mean height above sea level values. First and last value represents transmitter end receiver. (m)
+    wavel: Wavelength of the signal. (m)
+    re: Equivalent Earth radius. (m)
+    '''
     re = re/1000
     Xcoords = Xcoords/1000
     Lba = DeltaBullingtonA(Xcoords,Ycoords,wavel,re=re)
@@ -1072,6 +1234,15 @@ def DeltaBullington(Xcoords,Ycoords,wavel,re=8500000):
 
 #2.12
 def ITUMultipleCylinders(Xcoords,Ycoords,wavel,rheight,theight,re = 8500000,pltIllustration = 0):
+    '''
+    Xcoords: Distance values. First and last value represents transmitter end receiver. (m)
+    Ycoords: Mean height above sea level values. First and last value represents transmitter end receiver. (m)
+    wavel: Wavelength of the signal. (m)
+    rheight: Receiver height above terrain. (m)
+    theigh: Transmitter height above terrain. (m)
+    pltIllustration: If this variable is assigned a value of one the method is visualised.
+    re: Equivalent Earth radius. (m)
+    '''
     stringX = [Xcoords[0]]
     stringY = [Ycoords[0]]
 
@@ -1318,6 +1489,15 @@ def ITUMultipleCylinders(Xcoords,Ycoords,wavel,rheight,theight,re = 8500000,pltI
 
 #2.13
 def DeygoutRounded(Xcoords,Ycoords,wavel,Radiusses,pltIllustration = 0,Searth = 0,re = 8500000):
+    '''
+    Xcoords: Distance values of knife-edges. First and last value represents transmitter end receiver. (m)
+    Ycoords: Mean height above sea level values of knife-edges. First and last value represents transmitter end receiver. (m)
+    wavel: Wavelength of the signal. (m)
+    Radiusses: Radiusses of obstacles. (m)
+    pltIllustration: If this variable is assigned a value of one the method is visualised.
+    Searth: If this variable is equal to 1 a round Earth approach is used.
+    re: Equivalent Earth radius. (m)
+    '''
     if pltIllustration == 1 :
                
         fig, ax = plt.subplots() 
@@ -1365,4 +1545,22 @@ def DeygoutRounded(Xcoords,Ycoords,wavel,Radiusses,pltIllustration = 0,Searth = 
     return L
 
 
+def main():
 
+    intlength = 1000000 #meter
+    rheight = 30 #meter
+    theight = 30 #meter
+
+    f = 1000000000#Hz
+    wavel = WaveLength(f)
+    kfactor = 4/3
+
+    GetRadiusses = 1
+    re_ = kfactor * 6371000
+
+    df = DiffractionControl("E:/Final Year Project/book3.csv",intlength,theight,rheight,f,kfactor = 4/3,roundEarth = 0,EarthDiffraction = 0,KnifeEdgeMethod=[0,1,2,3,4],RoundedObstacleMethod = [0],TwoObstacleMethod = [0],SingleObstacleMethod = [0,1,2], PlotFunc = 0)
+
+
+
+if __name__ == '__main__':
+    main()
