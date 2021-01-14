@@ -35,6 +35,7 @@ import sys
 #0.1
 def DiffractionControl(fname,IntervalLength,TransmitterHeight,ReceiverHeight,Frequency,kfactor = 4/3,roundEarth = 0,EarthDiffraction = 0,KnifeEdgeMethod=[0],RoundedObstacleMethod = [0],TwoObstacleMethod = [0],SingleObstacleMethod = [1], PlotFunc = 0):
     '''
+    INPUT PARAMETERS
     fname: The file path of the csv file that contains one or more terrain profiles.
     IntervalLength: The length of each interval along the propagation path that diffraction loss must be calculated. (m)
     TransmitterHeight: This is the height of the transmitter above the terrain. (m)
@@ -242,6 +243,7 @@ def DiffractionControl(fname,IntervalLength,TransmitterHeight,ReceiverHeight,Fre
 #0.2
 def InputValidate(TerrainData):
     '''
+    INPUT PARAMETERS
     TerrainData: Terrain profiles in the form of a DataFrame 
     '''
     colnames = TerrainData.columns
@@ -256,6 +258,7 @@ def InputValidate(TerrainData):
 #0.3
 def OutputValidate(Loss):
     '''
+    INPUT PARAMETERS
     Loss: Diffraction loss. (dB)
     '''
     if Loss < 0:
@@ -266,6 +269,7 @@ def OutputValidate(Loss):
 #0.4
 def GetTerrain(fname):
     '''
+    INPUT PARAMETERS
     fname: The file path of the csv file that contains one or more terrain profiles.
     '''
 
@@ -276,6 +280,7 @@ def GetTerrain(fname):
 #0.5
 def TerrainDivide(data, colnamex, colnamey, intlength, iterationNum): 
     '''
+    INPUT PARAMETERS
     data: All of the terrain profiles in the form of a DataFrame. 
     colnamex: The key is used to select the correct column of values from the terrain profile data frame.
     colnamey: The key is used to select the correct column of values from the terrain profile data frame.
@@ -304,6 +309,7 @@ def TerrainDivide(data, colnamex, colnamey, intlength, iterationNum):
 #1.1
 def FresnelZoneClearance(distarr,heightarr,rheight,theight,wavel, plotZone = 0,Searth = 0,re = 8500000):#
     ''' 
+    INPUT PARAMETERS
     distarr: Distance values. (m)
     heightarr: Mean height above sea level values. (m)
     rheight: This is the height of the receiver above the terrain. (m)
@@ -381,6 +387,7 @@ def FresnelZoneClearance(distarr,heightarr,rheight,theight,wavel, plotZone = 0,S
 #1.2
 def WaveLength(frequency):
     '''
+    INPUT PARAMETERS
     Frequency: The frequency of the transmitted signal. (Hz)
     '''
     c = 300000000 #speed of light m/s
@@ -390,6 +397,7 @@ def WaveLength(frequency):
 #1.3
 def ObstacleValues(Xcoords,Ycoords,Searth = 0,re = 8500000):
     '''
+    INPUT PARAMETERS
     Xcoords: Distance values. (m)
     Ycoords: Mean height above sea level values. (m)
     Searth: If this variable is equal to 1 a round Earth approach is used.
@@ -406,6 +414,7 @@ def ObstacleValues(Xcoords,Ycoords,Searth = 0,re = 8500000):
 #1.4
 def KnifeEdges(xintersect, yintersect, distarr, heightarr, Rheight, Theight, sensitivity, cylinders = 0, plotoutput = 0):
     '''
+    INPUT PARAMETERS
     xintersect: Distance values in first Fresnel zone. (m)
     yintersect: Height values in first Fresnel zone.
     distarr: Distance values. (m)
@@ -514,6 +523,7 @@ def KnifeEdges(xintersect, yintersect, distarr, heightarr, Rheight, Theight, sen
 #2.1
 def FresnelKirchoff(Xcoords,Ycoords,wavel,distMeth = 0, meth = 0,Searth = 0,re = 8500000):
     '''
+    INPUT PARAMETERS
     Xcoords: Distance values. First and last value represents transmitter end receiver. (m)
     Ycoords: Mean height above sea level values. First and last value represents transmitter end receiver. (m)
     wavel: Wavelength of the signal. (m)
@@ -552,6 +562,7 @@ def FresnelKirchoff(Xcoords,Ycoords,wavel,distMeth = 0, meth = 0,Searth = 0,re =
 #2.2
 def ITUSingleRounded(Xcoords,Ycoords,wavel,radius):
     '''
+    INPUT PARAMETERS
     Xcoords: Distance values. First and last value represents transmitter end receiver. (m)
     Ycoords: Mean height above sea level values. First and last value represents transmitter end receiver. (m)
     wavel: Wavelength of the signal. (m)
@@ -574,6 +585,7 @@ def ITUSingleRounded(Xcoords,Ycoords,wavel,radius):
 #2.3
 def ITUNLoS(d,wavel,h1,h2,re = 8500000):
     '''
+    INPUT PARAMETERS
     d: Path length. (m)
     wavel: Wavelength of signal. (m)
     h1: Transmitter height. (m)
@@ -644,6 +656,7 @@ def ITUNLoS(d,wavel,h1,h2,re = 8500000):
 #2.4
 def ITUSpericalEarthDiffraction(dm,wavel,h1,h2,re = 8500000):
     '''
+    INPUT PARAMETERS
     dm: Path length. (m)
     wavel: Wavelength of signal. (m)
     h1: Transmitter height. (m)
@@ -686,6 +699,7 @@ def ITUSpericalEarthDiffraction(dm,wavel,h1,h2,re = 8500000):
 #2.5
 def ITUTwoEdge(Xcoords,Ycoords,wavel):
     '''
+    INPUT PARAMETERS
     Xcoords: Distance values of knife-edges. First and last value represents transmitter end receiver. (m)
     Ycoords: Mean height above sea level values of knife-edges. First and last value represents transmitter end receiver. (m)
     wavel: Wavelength of the signal. (m)
@@ -768,6 +782,7 @@ def ITUTwoEdge(Xcoords,Ycoords,wavel):
 #2.6
 def ITUTwoRounded(Xcoords,Ycoords,radii,wavel): 
     '''
+    INPUT PARAMETERS
     Xcoords: Distance values of knife-edges. First and last value represents transmitter end receiver. (m)
     Ycoords: Mean height above sea level values of knife-edges. First and last value represents transmitter end receiver. (m)
     wavel: Wavelength of the signal. (m)
@@ -835,6 +850,7 @@ def ITUTwoRounded(Xcoords,Ycoords,radii,wavel):
 #2.7
 def Bullington(Xcoords,Ycoords,wavel,pltIllustration = 0,Searth = 0,re = 8500000):
     '''
+    INPUT PARAMETERS
     Xcoords: Distance values of knife-edges. First and last value represents transmitter end receiver. (m)
     Ycoords: Mean height above sea level values of knife-edges. First and last value represents transmitter end receiver. (m)
     wavel: Wavelength of the signal. (m)
@@ -917,6 +933,7 @@ def Bullington(Xcoords,Ycoords,wavel,pltIllustration = 0,Searth = 0,re = 8500000
 #2.8
 def EpsteinPeterson(Xcoords,Ycoords,wavel,pltIllustration = 0,Searth = 0,re = 8500000):
     '''
+    INPUT PARAMETERS
     Xcoords: Distance values of knife-edges. First and last value represents transmitter end receiver. (m)
     Ycoords: Mean height above sea level values of knife-edges. First and last value represents transmitter end receiver. (m)
     wavel: Wavelength of the signal. (m)
@@ -943,6 +960,7 @@ def EpsteinPeterson(Xcoords,Ycoords,wavel,pltIllustration = 0,Searth = 0,re = 85
 #2.9
 def Deygout(Xcoords,Ycoords,wavel,pltIllustration = 0,Searth = 0,re = 8500000):
     '''
+    INPUT PARAMETERS
     Xcoords: Distance values of knife-edges. First and last value represents transmitter end receiver. (m)
     Ycoords: Mean height above sea level values of knife-edges. First and last value represents transmitter end receiver. (m)
     wavel: Wavelength of the signal. (m)
@@ -989,6 +1007,7 @@ def Deygout(Xcoords,Ycoords,wavel,pltIllustration = 0,Searth = 0,re = 8500000):
 #2.10
 def Giovaneli(Xcoords,Ycoords,wavel, pltIllustration = 0,Searth = 0,re = 8500000):
     '''
+    INPUT PARAMETERS
     Xcoords: Distance values of knife-edges. First and last value represents transmitter end receiver. (m)
     Ycoords: Mean height above sea level values of knife-edges. First and last value represents transmitter end receiver. (m)
     wavel: Wavelength of the signal. (m)
@@ -1082,6 +1101,7 @@ def Giovaneli(Xcoords,Ycoords,wavel, pltIllustration = 0,Searth = 0,re = 8500000
 #2.11.1
 def DeltaBullingtonA(Xcoords,Ycoords,wavel,re=8500):
     '''
+    INPUT PARAMETERS
     Xcoords: Distance values. First and last value represents transmitter end receiver. (km)
     Ycoords: Mean height above sea level values. First and last value represents transmitter end receiver. (m)
     wavel: Wavelength of the signal. (m)
@@ -1151,6 +1171,7 @@ def DeltaBullingtonA(Xcoords,Ycoords,wavel,re=8500):
 #2.11.0
 def DeltaBullington(Xcoords,Ycoords,wavel,re=8500000):
     '''
+    INPUT PARAMETERS
     Xcoords: Distance values. First and last value represents transmitter end receiver. (m)
     Ycoords: Mean height above sea level values. First and last value represents transmitter end receiver. (m)
     wavel: Wavelength of the signal. (m)
@@ -1235,6 +1256,7 @@ def DeltaBullington(Xcoords,Ycoords,wavel,re=8500000):
 #2.12
 def ITUMultipleCylinders(Xcoords,Ycoords,wavel,rheight,theight,re = 8500000,pltIllustration = 0):
     '''
+    INPUT PARAMETERS
     Xcoords: Distance values. First and last value represents transmitter end receiver. (m)
     Ycoords: Mean height above sea level values. First and last value represents transmitter end receiver. (m)
     wavel: Wavelength of the signal. (m)
@@ -1490,6 +1512,7 @@ def ITUMultipleCylinders(Xcoords,Ycoords,wavel,rheight,theight,re = 8500000,pltI
 #2.13
 def DeygoutRounded(Xcoords,Ycoords,wavel,Radiusses,pltIllustration = 0,Searth = 0,re = 8500000):
     '''
+    INPUT PARAMETERS
     Xcoords: Distance values of knife-edges. First and last value represents transmitter end receiver. (m)
     Ycoords: Mean height above sea level values of knife-edges. First and last value represents transmitter end receiver. (m)
     wavel: Wavelength of the signal. (m)
@@ -1545,22 +1568,3 @@ def DeygoutRounded(Xcoords,Ycoords,wavel,Radiusses,pltIllustration = 0,Searth = 
     return L
 
 
-def main():
-
-    intlength = 1000000 #meter
-    rheight = 30 #meter
-    theight = 30 #meter
-
-    f = 1000000000#Hz
-    wavel = WaveLength(f)
-    kfactor = 4/3
-
-    GetRadiusses = 1
-    re_ = kfactor * 6371000
-
-    df = DiffractionControl("E:/Final Year Project/book3.csv",intlength,theight,rheight,f,kfactor = 4/3,roundEarth = 0,EarthDiffraction = 0,KnifeEdgeMethod=[0,1,2,3,4],RoundedObstacleMethod = [0],TwoObstacleMethod = [0],SingleObstacleMethod = [0,1,2], PlotFunc = 0)
-
-
-
-if __name__ == '__main__':
-    main()
